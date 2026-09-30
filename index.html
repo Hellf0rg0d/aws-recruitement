@@ -582,10 +582,10 @@
         let fullscreenExitStartTimestamp = null;
         let fullscreenExitActiveQuestion = null;
 
-        // Ensure form inputs and submit button are completely unlocked and enabled on load
+        // Ensure form inputs are unlocked and enabled on load; hide submit button until session starts
         form.querySelectorAll('input, textarea').forEach(input => input.disabled = false);
         submitBtn.disabled = false;
-        submitBtn.style.display = 'block';
+        submitBtn.style.display = 'none';
         submitBtn.textContent = 'Submit Assessment';
         if (messageDiv) messageDiv.style.display = 'none';
 
@@ -938,7 +938,7 @@
         fsEvents.forEach(evt => document.addEventListener(evt, handleFullscreenChange));
 
         function handleFullscreenChange() {
-            if (isSubmitted) return;
+            if (!isAssessmentActive || isSubmitted) return;
             if (fsModal.style.display === 'none') {
                 if (!isFullscreen()) {
                     fullscreenExits++;
@@ -990,9 +990,17 @@
         let lastFocusLossTime = 0;
         let blurCheckTimeout = null;
         let lastTabPressTime = 0;
+        let lastInputInteractionTime = 0;
+
+        document.addEventListener('focusin', function(e) {
+            lastInputInteractionTime = Date.now();
+        }, true);
+        document.addEventListener('click', function(e) {
+            lastInputInteractionTime = Date.now();
+        }, true);
 
         function triggerFocusLoss(reason) {
-            if (isSubmitted) return;
+            if (!isAssessmentActive || isSubmitted) return;
             if (fsModal.style.display !== 'none') return;
             
             // Debounce within 1.5s to prevent dual-triggering from blur + visibilitychange on the same tab switch
@@ -1045,6 +1053,7 @@
 
         // True tab switch or window minimized: document.visibilitychange
         document.addEventListener('visibilitychange', function() {
+            if (!isAssessmentActive || isSubmitted) return;
             if (document.hidden) {
                 triggerFocusLoss('visibility_hidden');
             } else {
@@ -1058,8 +1067,9 @@
 
         // Window blur with grace period & activeElement check
         window.addEventListener('blur', function() {
-            // Ignore if user just pressed Tab key (intra-page keyboard navigation)
-            if (Date.now() - lastTabPressTime < 1500) {
+            if (!isAssessmentActive || isSubmitted) return;
+            // Ignore if user recently interacted with an input or pressed Tab
+            if (Date.now() - lastTabPressTime < 2500 || Date.now() - lastInputInteractionTime < 2500) {
                 return;
             }
 
@@ -1069,16 +1079,21 @@
 
             if (blurCheckTimeout) clearTimeout(blurCheckTimeout);
 
-            // 450ms grace period: handles clicking email/inputs, extension popups, autocomplete, and focus transitions
+            // 1500ms grace period: handles clicking inputs, extension popups, autofill menus, and OS focus transitions
             blurCheckTimeout = setTimeout(function() {
-                if (isSubmitted) return;
+                if (!isAssessmentActive || isSubmitted) return;
 
-                // 1. If document is still considered focused by the browser, candidate is on the page
-                if (document.hasFocus()) {
+                // 1. If document is not hidden and has focus, candidate is active on page
+                if (document.hasFocus() || !document.hidden) {
                     return;
                 }
 
-                // 2. If candidate is currently focused on any input/element inside the page
+                // 2. If candidate recently interacted with an input
+                if (Date.now() - lastInputInteractionTime < 2500) {
+                    return;
+                }
+
+                // 3. If candidate is currently focused on any input/element inside the page
                 const active = document.activeElement;
                 if (active && (
                     active.tagName === 'INPUT' ||
@@ -1090,9 +1105,9 @@
                     return;
                 }
 
-                // 3. If window genuinely lost focus to another desktop app or tab
+                // 4. Genuine window focus loss to another application
                 triggerFocusLoss('window_blur');
-            }, 450);
+            }, 1500);
         });
 
         window.addEventListener('focus', function() {
@@ -1105,7 +1120,7 @@
 
         // Block and log text selection attempts (strictly on exam content, NOT candidate details)
         document.addEventListener('selectstart', function(e) {
-            if (isSubmitted) return;
+            if (!isAssessmentActive || isSubmitted) return;
             // Never block selection inside candidate details or inputs
             if (e.target.closest && (e.target.closest('.student-details') || e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) {
                 return;
@@ -1126,7 +1141,7 @@
         // Detect if text actually got selected anywhere inside exam content
         let lastSelectionTime = 0;
         document.addEventListener('selectionchange', function() {
-            if (isSubmitted) return;
+            if (!isAssessmentActive || isSubmitted) return;
             const sel = window.getSelection();
             if (!sel || sel.rangeCount === 0) return;
             const text = sel.toString().trim();
@@ -1159,9 +1174,12 @@
             }
         });
 
-        // Block & log copying globally (question text, options, code snippets, inputs)
+        // Block & log copying globally (question text, options, code snippets)
         document.addEventListener('copy', function(e) {
-            if (isSubmitted) return;
+            if (!isAssessmentActive || isSubmitted) return;
+            if (e.target.closest && (e.target.closest('.student-details') || e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) {
+                return;
+            }
             e.preventDefault();
             copyAttempts++;
             logSecurityViolation('copy_attempt', {
@@ -1174,7 +1192,10 @@
 
         // Block & log cut globally
         document.addEventListener('cut', function(e) {
-            if (isSubmitted) return;
+            if (!isAssessmentActive || isSubmitted) return;
+            if (e.target.closest && (e.target.closest('.student-details') || e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) {
+                return;
+            }
             e.preventDefault();
             copyAttempts++;
             logSecurityViolation('cut_attempt', {
@@ -1185,9 +1206,12 @@
             showToast("⚠️ Cut Blocked! Content editing shortcuts are prohibited and logged.");
         }, true);
 
-        // Block & log pasting globally
+        // Block & log pasting globally on questions
         document.addEventListener('paste', function(e) {
-            if (isSubmitted) return;
+            if (!isAssessmentActive || isSubmitted) return;
+            if (e.target.closest && (e.target.closest('.student-details') || e.target.id === 'email' || e.target.id === 'name' || e.target.id === 'usn' || e.target.id === 'branch_sem')) {
+                return;
+            }
             e.preventDefault();
             pasteAttempts++;
             logSecurityViolation('paste_attempt', { count: pasteAttempts }, e.target);
@@ -1196,21 +1220,24 @@
 
         // Block drag & drop globally
         document.addEventListener('drop', function(e) {
-            if (isSubmitted) return;
+            if (!isAssessmentActive || isSubmitted) return;
+            if (e.target.closest && e.target.closest('.student-details')) return;
             e.preventDefault();
             showToast("⚠️ Drag & Drop Blocked!");
         }, true);
 
         // Block contextmenu (right click) globally
         document.addEventListener('contextmenu', function(e) {
-            if (isSubmitted) return;
+            if (!isAssessmentActive || isSubmitted) return;
+            if (e.target.closest && e.target.closest('.student-details')) return;
             e.preventDefault();
             showToast("⚠️ Right-click context menu is disabled.");
         }, true);
 
         // Intercept & log Control, Command, and keyboard shortcuts
         document.addEventListener('keydown', function(e) {
-            if (isSubmitted) return;
+            if (!isAssessmentActive || isSubmitted) return;
+            if (e.target.closest && e.target.closest('.student-details')) return;
 
             // Handle Tab navigation safely
             if (e.key === 'Tab') {
@@ -1842,6 +1869,8 @@
                         } else {
                             startServerAuthoritativeCountdown(data.time_remaining);
                             updateSaveIndicator('saved');
+                            submitBtn.style.display = 'block';
+                            submitBtn.disabled = false;
                         }
                     })
                     .catch(err => {
@@ -1966,6 +1995,10 @@
         // Submit / Finish Assessment Handler
         form.addEventListener('submit', function(e) {
             e.preventDefault();
+            if (!isAssessmentActive) {
+                showToast("⚠️ Please click 'Start / Resume Assessment' above to begin your timed test.");
+                return;
+            }
             if (!confirm("Are you sure you want to finish and submit your assessment now?\n\nOnce submitted, answers cannot be modified.")) {
                 return;
             }
@@ -1986,7 +2019,10 @@
                     'Accept': 'application/json'
                 }
             })
-            .then(res => res.json())
+            .then(res => {
+                if (!res.ok) throw new Error("HTTP " + res.status + " finalizing assessment");
+                return res.json();
+            })
             .then(data => {
                 disableForm(false);
                 submitBtn.style.display = 'none';
