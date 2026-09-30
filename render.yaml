@@ -14,3 +14,10 @@ services:
         value: 3.11.9
       - key: DB_PATH
         value: submissions.json
+      # Supabase PostgreSQL Direct Connection
+      - key: DATABASE_URL
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_KEY
+        sync: false

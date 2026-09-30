@@ -436,7 +436,13 @@
         <h1 id="mainTitle">Technical Recruitment Test</h1>
         <p id="challengeTitle">Loading test...</p>
         <div id="testInfoBanner" class="test-info-badge" style="display: none;"></div>
-        <div id="countdownTimer" style="margin-top: 12px; font-size: 15px; font-weight: 700; color: #e03131; display: none;">⏳ Closes in: --h --m --s</div>
+        <div style="display: flex; align-items: center; justify-content: center; gap: 12px; margin-top: 10px; flex-wrap: wrap;">
+            <div id="countdownTimer" style="font-size: 15px; font-weight: 700; color: #e03131; display: none;">⏳ Time Remaining: --m --s</div>
+            <div id="saveStatusIndicator" style="display: none; align-items: center; gap: 6px; font-size: 13px; font-weight: 700; color: #059669; background: #ecfdf5; border: 1.5px solid #a7f3d0; padding: 4px 14px; border-radius: 20px; box-shadow: 0 2px 6px rgba(16, 185, 129, 0.15);">
+                <span id="saveStatusDot" style="width: 8px; height: 8px; border-radius: 50%; background: #10b981; display: inline-block;"></span>
+                <span id="saveStatusText">☁️ All answers saved</span>
+            </div>
+        </div>
     </div>
 
     <!-- The Formspree/Google Sheets Web App URL goes in the action attribute below -->
@@ -469,6 +475,14 @@
             <div class="form-group">
                 <label for="branch_sem">Branch &amp; Semester *</label>
                 <input type="text" id="branch_sem" name="branch_sem" required placeholder="e.g. CSE - 4th Sem" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+            </div>
+            <div id="candidateActionRow" style="grid-column: 1 / -1; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-top: 6px; padding: 12px 14px; background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 10px;">
+                <div id="loginStatusNotice" style="font-size: 13.5px; color: #475569; font-weight: 600;">
+                    👉 Enter your details above and click Start to begin or resume your test session.
+                </div>
+                <button type="button" id="startAssessmentBtn" style="background: linear-gradient(135deg, #4338ca, #6366f1); color: white; border: none; padding: 11px 26px; border-radius: 8px; font-size: 14.5px; font-weight: 700; cursor: pointer; box-shadow: 0 4px 12px rgba(67, 56, 202, 0.25);">
+                    🚀 Start / Resume Assessment
+                </button>
             </div>
         </div>
 
@@ -1689,283 +1703,605 @@
             return (str == null ? '' : str).replace(/"/g, '&quot;');
         }
 
-        let timerInterval = null;
+        // ==============================================================================
+        // Classroom Resume Engine — State & Auto-Save Management
+        // ==============================================================================
+        let currentAssessmentState = null;
+        let autoSaveDebounceTimers = {};
+        let serverTimerInterval = null;
+        let serverSecondsRemaining = 0;
+        let isAssessmentActive = false;
 
-        function startCountdown(challenge) {
-            if (timerInterval) clearInterval(timerInterval);
+        function updateSaveIndicator(status) {
+            const ind = document.getElementById('saveStatusIndicator');
+            const dot = document.getElementById('saveStatusDot');
+            const txt = document.getElementById('saveStatusText');
+            if (!ind || !dot || !txt) return;
+
+            ind.style.display = 'inline-flex';
+            if (status === 'saving') {
+                dot.style.background = '#f59e0b';
+                ind.style.background = '#fffbeb';
+                ind.style.borderColor = '#fde68a';
+                txt.innerText = '☁️ Saving...';
+            } else if (status === 'saved') {
+                dot.style.background = '#10b981';
+                ind.style.background = '#ecfdf5';
+                ind.style.borderColor = '#a7f3d0';
+                txt.innerText = '✓ All answers saved';
+            } else if (status === 'offline') {
+                dot.style.background = '#ef4444';
+                ind.style.background = '#fef2f2';
+                ind.style.borderColor = '#fecaca';
+                txt.innerText = '⚠️ Network offline (retrying)';
+            } else if (status === 'error') {
+                dot.style.background = '#ef4444';
+                ind.style.background = '#fef2f2';
+                ind.style.borderColor = '#fecaca';
+                txt.innerText = '⚠️ Save error';
+            }
+        }
+
+        function startServerAuthoritativeCountdown(seconds) {
+            if (serverTimerInterval) clearInterval(serverTimerInterval);
+            serverSecondsRemaining = Math.max(0, parseInt(seconds, 10));
 
             const timerEl = document.getElementById('countdownTimer');
-            if (!challenge) {
-                timerEl.style.display = 'none';
-                return;
-            }
+            if (!timerEl) return;
+            timerEl.style.display = 'block';
 
-            let expiryDate = null;
-            if (challenge.expiresAt) {
-                expiryDate = new Date(challenge.expiresAt);
-            } else if (challenge.durationMinutes) {
-                const timerSessionKey = 'test_start_' + currentChallengeId;
-                const startTime = Date.now();
-                localStorage.setItem(timerSessionKey, startTime);
-                expiryDate = new Date(startTime + challenge.durationMinutes * 60 * 1000);
-            }
-
-            if (!expiryDate) {
-                timerEl.style.display = 'none';
-                return;
-            }
-
-            function updateTimer() {
-                const now = new Date();
-                const diff = expiryDate - now;
-
-                if (diff <= 0) {
-                    clearInterval(timerInterval);
+            function renderTick() {
+                if (serverSecondsRemaining <= 0) {
+                    clearInterval(serverTimerInterval);
                     timerEl.innerText = "⏳ Time Expired";
                     timerEl.style.color = "#d9534f";
-                    checkSubmissionStatus(challenge);
+                    finishAssessment(true);
                     return;
                 }
+                const m = Math.floor(serverSecondsRemaining / 60);
+                const s = serverSecondsRemaining % 60;
+                const sFormatted = s < 10 ? '0' + s : s;
+                timerEl.innerText = `⏳ Time Remaining: ${m}m ${sFormatted}s`;
 
-                timerEl.style.display = 'block';
-
-                const hours = Math.floor(diff / (1000 * 60 * 60));
-                const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-                const seconds = Math.floor((diff % (1000 * 60)) / 1000);
-
-                if (hours > 0) {
-                    timerEl.innerText = `⏳ Closes in: ${hours}h ${minutes}m ${seconds}s`;
-                } else {
-                    timerEl.innerText = `⏳ Closes in: ${minutes}m ${seconds}s`;
-                }
-                if (diff < 5 * 60 * 1000) {
+                if (serverSecondsRemaining < 300) {
                     timerEl.style.color = "#e03131";
+                } else {
+                    timerEl.style.color = "#d97706";
+                }
+                serverSecondsRemaining--;
+            }
+
+            renderTick();
+            serverTimerInterval = setInterval(renderTick, 1000);
+        }
+
+        function syncServerCountdown(seconds) {
+            if (seconds !== undefined && !isNaN(seconds)) {
+                serverSecondsRemaining = Math.max(0, parseInt(seconds, 10));
+            }
+        }
+
+        function triggerAutoSave(questionId, selectedOption) {
+            if (!isAssessmentActive) return;
+            updateSaveIndicator('saving');
+
+            if (autoSaveDebounceTimers[questionId]) {
+                clearTimeout(autoSaveDebounceTimers[questionId]);
+            }
+
+            // Debounced by 500ms
+            autoSaveDebounceTimers[questionId] = setTimeout(() => {
+                fetch('/api/save', {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        question_id: questionId,
+                        selected_option: selectedOption,
+                        telemetry: {
+                            fullscreen_exits: fullscreenExits,
+                            tab_switches: tabSwitches,
+                            copy_attempts: copyAttempts,
+                            paste_attempts: pasteAttempts,
+                            ctrl_cmd_attempts: ctrlCmdAttempts,
+                            text_selection_attempts: textSelectionAttempts,
+                            integrity_risk: computeCurrentRisk()
+                        }
+                    })
+                })
+                .then(async res => {
+                    if (res.status === 403) {
+                        const err = await res.json().catch(() => ({}));
+                        alert(err.detail || "Assessment time has expired or assessment was submitted.");
+                        disableForm(true);
+                        return;
+                    }
+                    if (res.ok) {
+                        const resData = await res.json().catch(() => ({}));
+                        if (resData.time_remaining !== undefined) {
+                            syncServerCountdown(resData.time_remaining);
+                        }
+                        updateSaveIndicator('saved');
+                    } else {
+                        updateSaveIndicator('error');
+                    }
+                })
+                .catch(err => {
+                    console.warn("Auto-save sync offline notice:", err);
+                    updateSaveIndicator('offline');
+                });
+            }, 500);
+        }
+
+        function computeCurrentRisk() {
+            if (copyAttempts > 0 || fullscreenExits >= 3 || tabSwitches >= 3) {
+                return "HIGH / FLAGGED";
+            }
+            if (tabSwitches > 1 || fullscreenExits > 1) {
+                return "MEDIUM / SUSPICIOUS";
+            }
+            return "LOW / CLEAN";
+        }
+
+        function restoreCandidateAnswers(answersMap) {
+            if (!answersMap || typeof answersMap !== 'object') return;
+            for (const [qid, opt] of Object.entries(answersMap)) {
+                const radio = document.querySelector(`input[name="${qid}"][value="${opt}"]`);
+                if (radio) {
+                    radio.checked = true;
+                    const optionLabel = radio.closest('.mcq-option');
+                    if (optionLabel) {
+                        const grid = optionLabel.closest('.mcq-options');
+                        if (grid) {
+                            grid.querySelectorAll('.mcq-option').forEach(l => l.classList.remove('selected'));
+                        }
+                        optionLabel.classList.add('selected');
+                    }
+                } else {
+                    const ta = document.getElementById(qid);
+                    if (ta) ta.value = opt;
+                }
+            }
+            updateAttemptedCount();
+        }
+
+        function renderChallengePaper(challenge, setLabel) {
+            window.currentChallenge = challenge;
+            window.currentSetLabel = setLabel;
+
+            // Render active set indicators in UI
+            const activeSetNameEl = document.getElementById('activeSetName');
+            if (activeSetNameEl) activeSetNameEl.innerText = setLabel;
+
+            const sidebarSetBadgeEl = document.getElementById('sidebarSetBadge');
+            if (sidebarSetBadgeEl) sidebarSetBadgeEl.innerText = setLabel;
+
+            const detailsSetBadgeEl = document.getElementById('detailsSetBadge');
+            if (detailsSetBadgeEl) detailsSetBadgeEl.innerText = setLabel;
+
+            const badgeEl = document.getElementById('challengeBadge');
+            if (badgeEl) badgeEl.innerText = `${setLabel} • AWS Student Builder Group`;
+
+            const mainTitleEl = document.getElementById('mainTitle');
+            if (mainTitleEl) mainTitleEl.innerText = `Technical Recruitment Test — ${setLabel}`;
+
+            const titleEl = document.getElementById('challengeTitle');
+            if (titleEl) titleEl.innerText = challenge.title;
+            document.title = `${setLabel} — ${challenge.title}`;
+
+            const bannerEl = document.getElementById('testInfoBanner');
+            if (bannerEl) {
+                const qCount = (challenge.questions || []).length;
+                const durationText = challenge.durationMinutes ? `${challenge.durationMinutes} Minutes` : '25 Minutes';
+                bannerEl.innerHTML = `🎯 <strong>Current Set: ${setLabel}</strong> &nbsp;|&nbsp; ⏱️ ${durationText} &nbsp;|&nbsp; 📝 ${qCount} Questions &nbsp;|&nbsp; Single Correct MCQs`;
+                bannerEl.style.display = 'inline-flex';
+            }
+
+            // Render Sections & Questions
+            let sectionsConfig = challenge.sections;
+            if (!sectionsConfig || sectionsConfig.length === 0) {
+                sectionsConfig = [
+                    { id: 'conceptual', title: '📝 Simple Conceptual' },
+                    { id: 'mcq', title: '🖼️ MCQs & Visuals' },
+                    { id: 'numerical', title: '🔢 Numerical Problems' },
+                    { id: 'matching', title: '🔗 Match & Proofs' }
+                ];
+            }
+
+            const sections = {};
+            const tabsContainer = document.getElementById('sidebarTabsContainer');
+            if (tabsContainer) tabsContainer.innerHTML = '';
+
+            sectionsConfig.forEach((sec, idx) => {
+                const secDiv = document.createElement('div');
+                secDiv.id = 'sec_' + sec.id;
+                sections[sec.id] = secDiv;
+
+                if (tabsContainer) {
+                    const tabEl = document.createElement('div');
+                    tabEl.className = 'nav-tab' + (idx === 0 ? ' active' : '');
+                    tabEl.setAttribute('data-target', 'sec_' + sec.id);
+                    tabEl.innerText = sec.title;
+                    tabsContainer.appendChild(tabEl);
+                }
+            });
+
+            questionsContainer.innerHTML = '';
+            Object.values(sections).forEach(sec => questionsContainer.appendChild(sec));
+
+            const isCategorized = (challenge.questions || []).some(q => q.category);
+            const sidebarEl = document.querySelector('.exam-sidebar');
+            const layoutEl = document.querySelector('.exam-layout');
+            const placeholderEl = document.getElementById('selectSectionPlaceholder');
+
+            if (isCategorized) {
+                if (sidebarEl) sidebarEl.style.display = 'block';
+                if (layoutEl) layoutEl.style.gridTemplateColumns = window.innerWidth > 768 ? '1fr 3fr' : '1fr';
+                if (placeholderEl) placeholderEl.style.display = 'none';
+                sectionsConfig.forEach((sec, idx) => {
+                    sections[sec.id].style.display = (idx === 0) ? 'block' : 'none';
+                });
+            } else {
+                if (sidebarEl) sidebarEl.style.display = 'none';
+                if (layoutEl) layoutEl.style.gridTemplateColumns = '1fr';
+                if (placeholderEl) placeholderEl.style.display = 'none';
+                if (sectionsConfig[0] && sections[sectionsConfig[0].id]) {
+                    sections[sectionsConfig[0].id].style.display = 'block';
                 }
             }
 
-            updateTimer();
-            timerInterval = setInterval(updateTimer, 1000);
+            const partitionedQuestions = {};
+            sectionsConfig.forEach(sec => {
+                partitionedQuestions[sec.id] = [];
+            });
+
+            (challenge.questions || []).forEach(q => {
+                const cat = q.category || sectionsConfig[0].id;
+                if (partitionedQuestions[cat]) {
+                    partitionedQuestions[cat].push(q);
+                } else if (sectionsConfig[0]) {
+                    partitionedQuestions[sectionsConfig[0].id].push(q);
+                }
+            });
+
+            let globalIndex = 0;
+            sectionsConfig.forEach(sec => {
+                const qList = partitionedQuestions[sec.id] || [];
+                qList.forEach(q => {
+                    globalIndex++;
+                    const currentQNum = globalIndex;
+
+                    let cleanHeading = q.heading || ('Question ' + globalIndex);
+                    if (cleanHeading.indexOf(':') !== -1 && cleanHeading.toLowerCase().startsWith('question')) {
+                        cleanHeading = cleanHeading.substring(cleanHeading.indexOf(':') + 1).trim();
+                    }
+
+                    const block = document.createElement('div');
+                    block.className = 'question-block';
+                    block.setAttribute('data-question-id', q.id);
+                    block.setAttribute('data-question-num', currentQNum);
+                    block.setAttribute('data-question-heading', cleanHeading);
+                    block.id = 'question_block_' + q.id;
+                    block.style.marginBottom = '15px';
+
+                    let innerHtml = '<h3>Question ' + currentQNum + ': ' + escapeHtml(cleanHeading) + '</h3>';
+                    if (q.image) {
+                        innerHtml += '<img src="' + escapeAttr(q.image) + '" alt="' + escapeAttr(q.imageAlt || '') +
+                            '" style="max-width:100%;border-radius:8px;margin-top:15px;margin-bottom:15px;display:block;box-shadow:0 4px 10px rgba(31,25,90,0.08);">';
+                    }
+                    innerHtml += '<p style="font-size: 16px; line-height: 1.6; margin-bottom: 12px;">' + escapeHtml(q.text) + '</p>';
+                    if (q.code) {
+                        innerHtml += '<pre class="code-block"><code>' + escapeHtml(q.code) + '</code></pre>';
+                    }
+                    block.innerHTML = innerHtml;
+
+                    const answerWrap = document.createElement('div');
+                    answerWrap.className = 'answer-section';
+                    answerWrap.setAttribute('data-question-id', q.id);
+                    answerWrap.setAttribute('data-question-num', currentQNum);
+                    answerWrap.setAttribute('data-question-heading', cleanHeading);
+                    answerWrap.id = 'answer_wrap_' + q.id;
+                    answerWrap.style.marginBottom = '30px';
+
+                    if (q.type === 'mcq' || (q.options && q.options.length > 0)) {
+                        const optionsGrid = document.createElement('div');
+                        optionsGrid.className = 'mcq-options';
+
+                        q.options.forEach(opt => {
+                            const optionLabel = document.createElement('label');
+                            optionLabel.className = 'mcq-option';
+
+                            const radio = document.createElement('input');
+                            radio.type = 'radio';
+                            radio.name = q.id;
+                            radio.value = opt.label;
+                            radio.className = 'mcq-radio';
+
+                            const badge = document.createElement('span');
+                            badge.className = 'mcq-badge';
+                            badge.innerText = opt.label.toUpperCase();
+
+                            const optText = document.createElement('span');
+                            optText.className = 'mcq-text';
+                            optText.innerText = opt.text;
+
+                            optionLabel.appendChild(radio);
+                            optionLabel.appendChild(badge);
+                            optionLabel.appendChild(optText);
+
+                            radio.addEventListener('change', function() {
+                                optionsGrid.querySelectorAll('.mcq-option').forEach(l => l.classList.remove('selected'));
+                                if (this.checked) {
+                                    optionLabel.classList.add('selected');
+                                    lastActiveQuestion = { id: q.id, num: currentQNum, heading: cleanHeading };
+                                    recordQuestionAttempt(q.id, currentQNum, this.value);
+                                    triggerAutoSave(q.id, this.value);
+                                }
+                                updateAttemptedCount();
+                            });
+
+                            optionsGrid.appendChild(optionLabel);
+                        });
+
+                        answerWrap.appendChild(optionsGrid);
+                    } else {
+                        const ta = document.createElement('textarea');
+                        ta.id = q.id;
+                        ta.name = q.name;
+                        ta.rows = q.rows || 3;
+                        ta.placeholder = q.placeholder || 'Type your answer here...';
+                        ta.setAttribute('onpaste', 'return false;');
+                        ta.setAttribute('oncopy', 'return false;');
+                        ta.setAttribute('oncontextmenu', 'return false;');
+                        ta.addEventListener('input', function() {
+                            triggerAutoSave(q.id, this.value);
+                        });
+                        answerWrap.appendChild(ta);
+                    }
+
+                    sections[sec.id].appendChild(block);
+                    sections[sec.id].appendChild(answerWrap);
+                });
+            });
+
+            // Bind sidebar tab click listeners
+            if (tabsContainer) {
+                tabsContainer.querySelectorAll('.nav-tab').forEach(tab => {
+                    tab.addEventListener('click', function() {
+                        tabsContainer.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+                        this.classList.add('active');
+                        const targetId = this.getAttribute('data-target');
+                        Object.keys(sections).forEach(id => {
+                            sections[id].style.display = ('sec_' + id === targetId) ? 'block' : 'none';
+                        });
+                    });
+                });
+            }
+
+            updateAttemptedCount();
         }
 
-        function checkSubmissionStatus(challenge) {
-            // Check for expiration
-            if (challenge && challenge.expiresAt) {
-                const now = new Date();
-                const expiryDate = new Date(challenge.expiresAt);
-                if (now > expiryDate) {
-                    fsModal.style.display = 'none';
-                    disableForm(true);
-                    messageTitle.innerText = "Assessment Period Closed";
-                    messageTitle.style.color = "#d9534f";
-                    messageDiv.style.background = "#fdeeee";
-                    messageDiv.style.borderLeft = "6px solid #d9534f";
-                    messageText.innerHTML = "⚠️ This assessment has closed. Submissions are no longer accepted.";
+        // ==============================================================================
+        // Session & State Synchronization (Classroom Resume)
+        // ==============================================================================
+
+        function loadAssessmentState() {
+            fetch('/api/state', {
+                method: 'GET',
+                credentials: 'include',
+                headers: { 'Accept': 'application/json' }
+            })
+            .then(res => {
+                if (res.status === 401) {
+                    showUnauthenticatedView();
+                    return null;
+                }
+                return res.json();
+            })
+            .then(data => {
+                if (!data || !data.authenticated) return;
+
+                currentAssessmentState = data;
+                isAssessmentActive = true;
+
+                // Lock Candidate Inputs with Verified Status
+                nameInput.value = data.name || '';
+                nameInput.readOnly = true;
+                emailInput.value = data.email || '';
+                emailInput.readOnly = true;
+                usnInput.value = data.usn || '';
+                usnInput.readOnly = true;
+                branchSemInput.value = data.branch_sem || '';
+                branchSemInput.readOnly = true;
+
+                const noticeEl = document.getElementById('loginStatusNotice');
+                if (noticeEl) {
+                    noticeEl.innerHTML = `✅ Verified Candidate: <strong>${escapeHtml(data.name)} (${escapeHtml(data.usn)})</strong> • Session Active`;
+                }
+                const startBtn = document.getElementById('startAssessmentBtn');
+                if (startBtn) startBtn.style.display = 'none';
+
+                // Fetch challenges.json and render assigned set
+                fetch('challenges.json?t=' + Date.now())
+                    .then(res => res.json())
+                    .then(cData => {
+                        const challengeKey = data.challenge_id || 'set_a';
+                        const challenge = (cData.challenges && cData.challenges[challengeKey]) || cData.challenges['set_a'];
+                        const setLabel = data.set_name || 'SET A';
+
+                        renderChallengePaper(challenge, setLabel);
+                        restoreCandidateAnswers(data.answers);
+
+                        // Check candidate submission status
+                        if (data.status === 'submitted') {
+                            disableForm(false);
+                            messageTitle.innerText = "Submission Received!";
+                            messageTitle.style.color = "#0ca678";
+                            messageText.innerHTML = `You have completed and submitted your recruitment test for <strong>${setLabel}</strong>.<br><strong>Final Score: ${data.score !== undefined ? data.score + '/' + (data.total_possible || 15) : 'Graded'}</strong>`;
+                            messageDiv.style.display = 'block';
+                            submitBtn.style.display = 'none';
+                        } else if (data.status === 'time_expired' || data.time_remaining <= 0) {
+                            disableForm(false);
+                            messageTitle.innerText = "Assessment Period Expired";
+                            messageTitle.style.color = "#d9534f";
+                            messageText.innerHTML = `Your allocated time for <strong>${setLabel}</strong> has elapsed. Saved responses have been recorded on the server.`;
+                            messageDiv.style.display = 'block';
+                            submitBtn.style.display = 'none';
+                        } else {
+                            startServerAuthoritativeCountdown(data.time_remaining);
+                            updateSaveIndicator('saved');
+                        }
+                    })
+                    .catch(err => {
+                        console.error("Could not load challenges:", err);
+                        document.getElementById('challengeTitle').innerText = "Failed to load test paper";
+                    });
+            })
+            .catch(err => {
+                console.error("State fetch error:", err);
+                showUnauthenticatedView();
+            });
+        }
+
+        function showUnauthenticatedView() {
+            isAssessmentActive = false;
+            nameInput.readOnly = false;
+            emailInput.readOnly = false;
+            usnInput.readOnly = false;
+            branchSemInput.readOnly = false;
+
+            const noticeEl = document.getElementById('loginStatusNotice');
+            if (noticeEl) {
+                noticeEl.innerHTML = "👉 Enter your details above and click <strong>Start / Resume Assessment</strong>.";
+            }
+            const startBtn = document.getElementById('startAssessmentBtn');
+            if (startBtn) startBtn.style.display = 'inline-block';
+
+            const ind = document.getElementById('saveStatusIndicator');
+            if (ind) ind.style.display = 'none';
+
+            // Load placeholder paper preview or instructions
+            fetch('challenges.json?t=' + Date.now())
+                .then(res => res.json())
+                .then(cData => {
+                    const ch = cData.challenges['set_a'];
+                    if (ch) renderChallengePaper(ch, 'SET A');
+                })
+                .catch(() => {});
+        }
+
+        // Bind Start / Resume Assessment Button
+        const startAssessmentBtn = document.getElementById('startAssessmentBtn');
+        if (startAssessmentBtn) {
+            startAssessmentBtn.addEventListener('click', function() {
+                const name = nameInput.value.trim();
+                const email = emailInput.value.trim();
+                const usn = usnInput.value.trim();
+                const branch = branchSemInput.value.trim();
+
+                if (!name) {
+                    alert("Please enter your Full Name.");
+                    nameInput.focus();
                     return;
                 }
-            }
+                if (!email || !email.includes('@')) {
+                    alert("Please enter a valid institutional Email Address.");
+                    emailInput.focus();
+                    return;
+                }
+
+                startAssessmentBtn.disabled = true;
+                startAssessmentBtn.innerText = "Authenticating...";
+
+                fetch('/api/login', {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        name: name,
+                        email: email,
+                        usn: usn,
+                        branch_sem: branch
+                    })
+                })
+                .then(res => {
+                    if (!res.ok) throw new Error("Could not initialize session.");
+                    return res.json();
+                })
+                .then(data => {
+                    startAssessmentBtn.disabled = false;
+                    startAssessmentBtn.innerText = "🚀 Start / Resume Assessment";
+
+                    if (data.is_resume) {
+                        showToast(`🔄 Welcome back ${data.name}! Resuming your test on ${data.set_name}.`);
+                    } else {
+                        showToast(`🚀 Session created! Assigned ${data.set_name}. Good luck!`);
+                    }
+
+                    // Prompt fullscreen for proctored mode
+                    if (document.documentElement.requestFullscreen && !document.fullscreenElement) {
+                        document.documentElement.requestFullscreen().catch(() => {});
+                    }
+
+                    loadAssessmentState();
+                })
+                .catch(err => {
+                    console.error("Login error:", err);
+                    alert("Unable to log in or resume session. Please ensure the server is online and try again.");
+                    startAssessmentBtn.disabled = false;
+                    startAssessmentBtn.innerText = "🚀 Start / Resume Assessment";
+                });
+            });
         }
 
+        // Submit / Finish Assessment Handler
         form.addEventListener('submit', function(e) {
             e.preventDefault();
-
-            isSubmitted = true;
-            if (timerInterval) clearInterval(timerInterval);
-
-            const email = emailInput.value.trim().toLowerCase();
-            const emailKey = 'submitted_' + currentChallengeId + '_email_' + email;
-            const submissionKey = 'submitted_' + currentChallengeId;
-
-            const actionUrl = form.getAttribute('action');
-            if (actionUrl === '' || actionUrl.includes('YOUR_FORMSPREE_ENDPOINT')) {
-                alert('Configuration Error: Submission endpoint is not set.');
-                isSubmitted = false;
-                return false;
+            if (!confirm("Are you sure you want to finish and submit your assessment now?\n\nOnce submitted, answers cannot be modified.")) {
+                return;
             }
+            finishAssessment(false);
+        });
+
+        function finishAssessment(isAuto = false) {
+            isAssessmentActive = false;
+            if (serverTimerInterval) clearInterval(serverTimerInterval);
 
             submitBtn.disabled = true;
-            submitBtn.textContent = 'Submitting response...';
+            submitBtn.innerText = isAuto ? "Time Expired — Finalizing..." : "Submitting assessment...";
 
-            // Build consolidated answer string from all questions
-            let combinedAnswer = "";
-            const ch = window.currentChallenge;
-            const questions = (ch && ch.questions) || [];
-            const formData = new FormData(form);
-
-            questions.forEach((q, idx) => {
-                let answerText = "";
-                let cleanHeading = q.heading || ('Question ' + (idx + 1));
-                if (q.type === 'mcq' || (q.options && q.options.length > 0)) {
-                    const checked = form.querySelector(`input[name="${q.id}"]:checked`);
-                    if (checked) {
-                        const opt = (q.options || []).find(o => o.label === checked.value);
-                        answerText = `(${checked.value.toUpperCase()}) ${opt ? opt.text : ''}`;
-                        formData.set(q.id, checked.value);
-                    } else {
-                        answerText = "[Unanswered]";
-                        formData.set(q.id, "");
-                    }
-                } else {
-                    const ta = document.getElementById(q.id);
-                    answerText = ta ? ta.value.trim() : "";
-                    formData.set(q.id, answerText);
-                }
-                const timing = questionTimings[q.id];
-                const timingStr = timing
-                    ? `[First Attempt: ${timing.firstAttemptFormatted} (${timing.firstAttemptAtSec}s into test) | Changes: ${timing.changesCount}]`
-                    : `[Not Attempted]`;
-
-                combinedAnswer += `Question ${idx + 1}: ${cleanHeading}\nAnswer: ${answerText}\nAttempt Timing: ${timingStr}\n\n`;
-            });
-
-            // Append per-question attempt timeline
-            combinedAnswer += `--- PER-QUESTION ATTEMPT TIMELINE ---\n`;
-            questions.forEach((q, idx) => {
-                const t = questionTimings[q.id];
-                if (t) {
-                    combinedAnswer += `Q${idx + 1} (${q.id}): Attempted at ${t.firstAttemptFormatted} (${t.firstAttemptAtSec}s) | Answer: ${t.selectedAnswer} | Changes: ${t.changesCount}\n`;
-                } else {
-                    combinedAnswer += `Q${idx + 1} (${q.id}): Not Attempted\n`;
-                }
-            });
-
-            formData.set('answer', combinedAnswer.trim());
-
-            // Append telemetry indicators for anti-malpractice auditing
-            formData.set('telemetry_tab_switches', tabSwitches);
-            formData.set('telemetry_paste_attempts', pasteAttempts);
-            formData.set('telemetry_copy_attempts', copyAttempts);
-            formData.set('telemetry_ctrl_cmd_attempts', ctrlCmdAttempts);
-            formData.set('telemetry_text_selections', textSelectionAttempts);
-            formData.set('telemetry_fullscreen_exits', fullscreenExits);
-            formData.set('telemetry_question_times', JSON.stringify(questionTimings));
-            formData.set('telemetry_question_violations', JSON.stringify(questionViolations));
-            formData.set('telemetry_time_taken', Math.round((Date.now() - startTime) / 1000));
-            formData.set('telemetry_device', getDeviceType() + " (" + navigator.platform + ")");
-            formData.set('telemetry_events', JSON.stringify(telemetryEvents));
-
-            // Also attach proctoring audit to consolidated answer text
-            combinedAnswer += `\n--- SECURITY & PROCTORING AUDIT ---\n` +
-                `Fullscreen Exits: ${fullscreenExits} / 3\n` +
-                `Tab Switches / Focus Loss: ${tabSwitches} / 3\n` +
-                `Control / Command Keys Pressed: ${ctrlCmdAttempts}\n` +
-                `Text Selection Attempts: ${textSelectionAttempts}\n` +
-                `Copy Attempts Blocked: ${copyAttempts}\n` +
-                `Paste Attempts Blocked: ${pasteAttempts}\n` +
-                `Time Taken: ${Math.round((Date.now() - startTime) / 1000)}s\n` +
-                `Device: ${getDeviceType()} (${navigator.platform})\n`;
-
-            // Append Per-Question Forensics Breakdown
-            combinedAnswer += `\n--- PER-QUESTION VIOLATION FORENSICS (ACCIDENTAL VS MALPRACTICE) ---\n`;
-            const violatedList = Object.values(questionViolations);
-            if (violatedList.length === 0) {
-                combinedAnswer += `All Questions Clean: 0 proctoring violations recorded.\n`;
-            } else {
-                violatedList.forEach(qv => {
-                    combinedAnswer += `Question ${qv.questionNumber} (${qv.questionId}) - ${qv.questionHeading}:\n` +
-                        `  Risk Level: [${qv.riskLevel}] | Violations: ${qv.violationsCount} | Total Away: ${qv.totalAwaySec}s\n` +
-                        `  Verdict: ${qv.verdict}\n`;
-                    if (qv.violations && qv.violations.length > 0) {
-                        qv.violations.forEach(v => {
-                            combinedAnswer += `    • [${v.time}] ${v.summary}\n`;
-                        });
-                    }
-                    combinedAnswer += `\n`;
-                });
-            }
-
-            formData.set('answer', combinedAnswer.trim());
-
-            try {
-                localStorage.setItem('last_submission_audit_' + (currentChallengeId || 'default'), JSON.stringify({
-                    email: email,
-                    name: document.getElementById('name') ? document.getElementById('name').value : '',
-                    usn: document.getElementById('usn') ? document.getElementById('usn').value : '',
-                    submittedAt: new Date().toISOString(),
-                    fullscreenExits: fullscreenExits,
-                    tabSwitches: tabSwitches,
-                    copyAttempts: copyAttempts,
-                    pasteAttempts: pasteAttempts,
-                    ctrlCmdAttempts: ctrlCmdAttempts,
-                    textSelectionAttempts: textSelectionAttempts,
-                    questionTimings: questionTimings,
-                    questionViolations: questionViolations,
-                    timeTakenSec: Math.round((Date.now() - startTime) / 1000),
-                    events: telemetryEvents
-                }));
-            } catch (e) {}
-
-            // Route to /api/submit when hosted on web server (localhost, Render, or custom cloud host)
-            const isHostedServer = window.location.protocol.startsWith('http');
-            let targetUrl = isHostedServer ? '/api/submit' : actionUrl;
-
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 8000); // 8s safety timeout
-
-            let fetchOptions = {
+            fetch('/api/finish', {
                 method: 'POST',
-                signal: controller.signal
-            };
-
-            if (isHostedServer) {
-                const payload = {};
-                formData.forEach((val, key) => {
-                    payload[key] = val;
-                });
-                fetchOptions.body = JSON.stringify(payload);
-                fetchOptions.headers = {
-                    'Content-Type': 'application/json',
+                credentials: 'include',
+                headers: {
                     'Accept': 'application/json'
-                };
-            } else {
-                fetchOptions.body = formData;
-                fetchOptions.headers = {
-                    'Accept': 'application/json'
-                };
-            }
-
-            fetch(targetUrl, fetchOptions)
-            .then(async response => {
-                clearTimeout(timeoutId);
-                let data = null;
-                try {
-                    data = await response.json();
-                } catch(e) {}
-
-                if (response.ok) {
-                    localStorage.setItem(emailKey, 'true');
-                    localStorage.setItem(submissionKey, 'true');
-                    disableForm();
-                    messageTitle.innerText = "Submission Successful!";
-                    messageTitle.style.color = "#0ca678";
-                    if (data && data.score) {
-                        messageText.innerHTML = `Thank you! Your recruitment test response for <strong>${window.currentSetLabel || 'this set'}</strong> has been recorded.<br><strong>Score: ${data.score}</strong> | Submission #${data.submissionId || 1}`;
-                    } else {
-                        messageText.innerHTML = `Thank you! Your recruitment test response for <strong>${window.currentSetLabel || 'this set'}</strong> has been recorded successfully.`;
-                    }
-                } else {
-                    if (data && data.errors) {
-                        alert('Submission Error: ' + data.errors.map(err => err.message).join(', '));
-                    } else if (data && data.message) {
-                        alert('Submission Error: ' + data.message);
-                    } else {
-                        alert('Error: There was an issue submitting your form.');
-                    }
-                    isSubmitted = false;
-                    submitBtn.disabled = false;
-                    submitBtn.textContent = 'Submit Assessment';
                 }
             })
-            .catch(error => {
-                clearTimeout(timeoutId);
-                console.warn('Network or timeout notice, saving local submission receipt...', error);
-                localStorage.setItem(emailKey, 'true');
-                localStorage.setItem(submissionKey, 'true');
-                disableForm();
-                messageTitle.innerText = "Submission Recorded!";
+            .then(res => res.json())
+            .then(data => {
+                disableForm(false);
+                submitBtn.style.display = 'none';
+                messageTitle.innerText = isAuto ? "Time Expired — Assessment Submitted" : "Submission Successful!";
                 messageTitle.style.color = "#0ca678";
-                messageText.innerText = "Your test responses and telemetry audit have been securely recorded in your browser session.";
+                messageText.innerHTML = `Thank you! Your responses for <strong>${data.set_name || window.currentSetLabel || 'this set'}</strong> have been finalized on the server.<br><br><strong>Final Score: ${data.score}</strong> | Completed in ${Math.round((data.time_taken_sec || 0)/60)}m`;
+                messageDiv.style.display = 'block';
+            })
+            .catch(err => {
+                console.error("Finish error:", err);
+                disableForm(false);
+                submitBtn.style.display = 'none';
+                messageTitle.innerText = "Assessment Submitted!";
+                messageTitle.style.color = "#0ca678";
+                messageText.innerHTML = `Your assessment has been submitted and recorded.`;
+                messageDiv.style.display = 'block';
             });
-        });
+        }
 
         function disableForm(hideCompletely = false) {
             if (hideCompletely) {
@@ -1996,6 +2332,9 @@
             if (attemptedEl) attemptedEl.innerText = attempted;
             if (totalEl) totalEl.innerText = questions.length;
         }
+
+        // Initialize App on Mount
+        loadAssessmentState();
     });
 </script>
 

@@ -1,2 +1,5 @@
 # AWS Student Builder Group Assessment Platform
-# Python Standard Library only — No external pip dependencies required.
+fastapi>=0.100.0
+uvicorn[standard]>=0.23.0
+httpx>=0.24.0
+asyncpg>=0.29.0

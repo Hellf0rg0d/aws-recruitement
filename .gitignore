@@ -3,6 +3,8 @@ __pycache__/
 *.pyc
 .venv/
 venv/
+.env
+*.env
 
 # Operating System & Editor Files
 .DS_Store
