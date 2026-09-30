@@ -1,0 +1,19 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Operating System & Editor Files
+.DS_Store
+Thumbs.db
+*.swp
+*.bak
+.idea/
+.vscode/
+
+# Audit Logs & Spreadsheets
+audit_*.json
+session_*.json
+*.xlsx
+*.csv

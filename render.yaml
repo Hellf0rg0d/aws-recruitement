@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: aws-recruitment-test
+    runtime: python
+    plan: free
+    region: singapore
+    branch: main
+    buildCommand: pip install -r requirements.txt
+    startCommand: python3 server.py
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
+      - key: DB_PATH
+        value: submissions.json

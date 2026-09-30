@@ -1,0 +1,2003 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>AWS Student Builder Group — Technical Recruitment Test</title>
+    <style>
+        * { box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #f4f8ff 0%, #e6f2fb 50%, #eef7f9 100%);
+            background-attachment: fixed;
+            color: #2b2b3a;
+            margin: 0;
+            padding: 40px 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1300px;
+            margin: 0 auto;
+            background: #ffffff;
+            padding: 48px;
+            border-radius: 18px;
+            box-shadow: 0 20px 50px rgba(31, 25, 90, 0.25);
+            border-top: 8px solid #6a5cf5;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .container::before {
+            content: "";
+            position: absolute;
+            top: -60px;
+            right: -60px;
+            width: 180px;
+            height: 180px;
+            background: radial-gradient(circle, rgba(106,92,245,0.12) 0%, rgba(106,92,245,0) 70%);
+            border-radius: 50%;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 36px;
+            padding-bottom: 24px;
+            border-bottom: 3px solid #f0eefe;
+        }
+        .header .badge {
+            display: inline-block;
+            background: linear-gradient(90deg, #6a5cf5, #3f8efc);
+            color: white;
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            padding: 6px 16px;
+            border-radius: 999px;
+            margin-bottom: 14px;
+        }
+        .header h1 {
+            margin: 0;
+            color: #1a1a2e;
+            font-size: 32px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+        }
+        .header p {
+            color: #6b6b80;
+            margin-top: 8px;
+            font-size: 17px;
+        }
+
+        .section-label {
+            font-size: 13px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            color: #6a5cf5;
+            margin-bottom: 12px;
+        }
+
+        .student-details {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 34px;
+            background: #f7f7ff;
+            padding: 26px;
+            border-radius: 12px;
+            border: 1px solid #e6e4fb;
+        }
+        .form-group { display: flex; flex-direction: column; }
+        label {
+            font-weight: 700;
+            font-size: 14px;
+            margin-bottom: 8px;
+            color: #33334d;
+        }
+        input[type="text"], input[type="email"], textarea {
+            padding: 13px 14px;
+            border-radius: 8px;
+            border: 1.5px solid #d8d6f5;
+            font-family: inherit;
+            font-size: 15px;
+            background: #ffffff;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        input[type="text"]:focus, input[type="email"]:focus, textarea:focus {
+            outline: none;
+            border-color: #6a5cf5;
+            box-shadow: 0 0 0 4px rgba(106,92,245,0.14);
+        }
+
+        .image-section {
+            display: flex;
+            justify-content: space-between;
+            gap: 24px;
+            margin-bottom: 34px;
+        }
+        .image-card {
+            width: 50%;
+            text-align: center;
+            background: #fff;
+            border: 1.5px solid #eeeef7;
+            padding: 16px;
+            border-radius: 12px;
+            box-shadow: 0 6px 18px rgba(31,25,90,0.06);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .image-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 24px rgba(31,25,90,0.12);
+        }
+        .image-card img { width: 100%; border-radius: 8px; display: block; }
+        .image-card h3 {
+            margin: 16px 0 6px 0;
+            color: #3f8efc;
+            font-size: 20px;
+            font-weight: 800;
+        }
+        .image-card p { font-size: 14px; color: #6b6b80; margin: 0; }
+
+        .question-block {
+            background: linear-gradient(135deg, #eef1ff 0%, #e6f7fb 100%);
+            border-left: 6px solid #6a5cf5;
+            padding: 26px 28px;
+            margin-bottom: 34px;
+            border-radius: 0 14px 14px 0;
+        }
+        .question-block h3 {
+            margin-top: 0;
+            margin-bottom: 12px;
+            color: #2d1e8f;
+            font-size: 19px;
+            font-weight: 800;
+        }
+        .question-block p { margin: 0; line-height: 1.8; font-size: 16px; color: #333349; }
+        .question-block strong { color: #1a1a2e; }
+
+        .answer-section label {
+            font-size: 15px;
+            margin-bottom: 6px;
+        }
+        .answer-section textarea {
+            width: 100%;
+            font-size: 16px;
+            line-height: 1.5;
+            resize: vertical;
+        }
+        .anti-cheat-warning {
+            font-size: 13px;
+            color: #d9534f;
+            font-weight: 700;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: #fdeeee;
+            padding: 10px 14px;
+            border-radius: 8px;
+            border: 1px solid #f6d4d4;
+        }
+
+        button {
+            margin-top: 30px;
+            width: 100%;
+            padding: 18px;
+            background: linear-gradient(90deg, #6a5cf5, #3f8efc);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 18px;
+            font-weight: 800;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            box-shadow: 0 10px 24px rgba(63,142,252,0.35);
+            transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.3s;
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 14px 30px rgba(63,142,252,0.45);
+            background: linear-gradient(90deg, #5a4bf0, #2f7ef5);
+        }
+        button:active { transform: translateY(0); }
+
+        .exam-layout {
+            display: grid;
+            grid-template-columns: 1fr 3fr;
+            gap: 40px;
+            margin-top: 30px;
+            align-items: start;
+        }
+        .exam-sidebar {
+            background: #f8fafc;
+            border: 1.5px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 24px;
+            position: sticky;
+            top: 20px;
+            box-shadow: 0 4px 12px rgba(31,25,90,0.03);
+        }
+        .attempted-badge {
+            background: #f1f5f9;
+            border: 1px solid #cbd5e1;
+            color: #334155;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: 800;
+            text-align: center;
+            margin-bottom: 20px;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);
+        }
+        .sidebar-title {
+            font-size: 13px;
+            font-weight: 800;
+            color: #475569;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 18px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+        .nav-tab {
+            padding: 14px 18px;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: 700;
+            color: #475569;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            border: 1px solid transparent;
+        }
+        .nav-tab:hover {
+            background: #f1f5f9;
+            color: #6a5cf5;
+            border-color: #e2e8f0;
+        }
+        .nav-tab.active {
+            background: linear-gradient(90deg, #6a5cf5, #3f8efc);
+            color: white;
+            box-shadow: 0 4px 12px rgba(106,92,245,0.25);
+            border-color: transparent;
+        }
+        .exam-content {
+            min-width: 0; /* Prevent grid breakout */
+            border-left: 2px solid #e2e8f0;
+            padding-left: 40px;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        @media (max-width: 768px) {
+            .exam-layout {
+                grid-template-columns: 1fr;
+            }
+            .exam-sidebar {
+                position: relative;
+                top: 0;
+                margin-bottom: 20px;
+            }
+            .exam-content {
+                border-left: none;
+                padding-left: 0;
+                border-top: 2px solid #e2e8f0;
+                padding-top: 20px;
+            }
+        }
+
+        /* MCQ and Code Block Styles */
+        .code-block {
+            background: #1e1e2e;
+            color: #cdd6f4;
+            padding: 16px 20px;
+            border-radius: 10px;
+            font-family: 'Consolas', 'Fira Code', 'Monaco', 'Courier New', monospace;
+            font-size: 14.5px;
+            line-height: 1.6;
+            overflow-x: auto;
+            margin: 14px 0 20px 0;
+            border: 1px solid rgba(255,255,255,0.08);
+            box-shadow: inset 0 2px 6px rgba(0,0,0,0.3);
+        }
+        .code-block code {
+            font-family: inherit;
+        }
+        .mcq-options {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 12px;
+            margin-top: 14px;
+            margin-bottom: 24px;
+        }
+        .mcq-option {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 14px 18px;
+            background: #ffffff;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            user-select: none;
+        }
+        .mcq-option:hover {
+            border-color: #6a5cf5;
+            background: #f8faff;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(106,92,245,0.08);
+        }
+        .mcq-option input[type="radio"] {
+            accent-color: #6a5cf5;
+            width: 18px;
+            height: 18px;
+            margin: 0;
+            cursor: pointer;
+        }
+        .mcq-option.selected, .mcq-option:has(input[type="radio"]:checked) {
+            border-color: #6a5cf5;
+            background: #f0eeff;
+            box-shadow: 0 4px 14px rgba(106,92,245,0.15);
+        }
+        .mcq-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 28px;
+            height: 28px;
+            border-radius: 6px;
+            background: #ede9fe;
+            color: #6a5cf5;
+            font-weight: 800;
+            font-size: 13px;
+            text-transform: uppercase;
+            flex-shrink: 0;
+        }
+        .mcq-option:has(input[type="radio"]:checked) .mcq-badge,
+        .mcq-option.selected .mcq-badge {
+            background: #6a5cf5;
+            color: white;
+        }
+        .mcq-text {
+            font-size: 15.5px;
+            color: #1e293b;
+            font-weight: 500;
+            line-height: 1.4;
+        }
+        .test-info-badge {
+            display: inline-flex;
+            gap: 16px;
+            background: #f1f5f9;
+            border: 1px solid #cbd5e1;
+            padding: 8px 18px;
+            border-radius: 20px;
+            margin-top: 12px;
+            font-size: 14px;
+            font-weight: 600;
+            color: #334155;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+    </style>
+</head>
+<body>
+
+<div id="fullscreenModal" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(26,26,46,0.98); z-index: 10000; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 40px; color: #ffffff; font-family: 'Segoe UI', sans-serif;">
+    <div style="display: inline-flex; align-items: center; gap: 8px; background: rgba(224, 49, 49, 0.18); border: 2px solid #e03131; color: #ff8787; padding: 8px 22px; border-radius: 999px; font-size: 14px; font-weight: 800; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 22px; box-shadow: 0 4px 15px rgba(224,49,49,0.2);">
+        ⚠️ STRICT LIMIT: 3 FULLSCREEN EXITS &amp; 3 FOCUS LOSSES MAXIMUM
+    </div>
+    <h2 style="font-size: 30px; margin-bottom: 16px; font-weight: 800; color: #6a5cf5;">🔒 Secure Assessment Mode</h2>
+    <p style="font-size: 16px; max-width: 620px; line-height: 1.7; margin-bottom: 24px; color: #cbd5e1;">
+        To begin this assessment, you must enter Fullscreen Mode.<br>
+        <span style="display: inline-block; background: rgba(255,255,255,0.08); padding: 12px 18px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.15); margin-top: 10px;">
+            🚨 <strong>Strict Limits: 3 Fullscreen Exits &amp; 3 Screen Focus Losses allowed.</strong><br>
+            On your <strong>3rd violation</strong> of either rule, your test will be permanently locked and responses frozen.
+        </span>
+    </p>
+    <button id="enterFullscreenBtn" style="max-width: 280px; background: linear-gradient(90deg, #6a5cf5, #3f8efc); font-weight: 800; border: none; padding: 16px 32px; border-radius: 8px; font-size: 16px; cursor: pointer; color: white; box-shadow: 0 10px 20px rgba(106,92,245,0.25);">
+        I Understand — Enter Fullscreen
+    </button>
+</div>
+
+<div id="securityWarningOverlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(217, 83, 79, 0.98); z-index: 9999; display: none; flex-direction: column; justify-content: center; align-items: center; text-align: center; color: white; padding: 40px; font-family: 'Segoe UI', sans-serif;">
+    <div id="securityWarningTag" style="background: rgba(0,0,0,0.3); border: 2px solid rgba(255,255,255,0.4); padding: 8px 22px; border-radius: 999px; font-size: 14px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 20px;">
+        ⚠️ SECURITY VIOLATION: FULLSCREEN EXITED
+    </div>
+    <h2 id="securityWarningTitle" style="font-size: 32px; font-weight: 800; margin-bottom: 16px;">Fullscreen Exit Warning</h2>
+    <div id="securityWarningPill" style="background: white; color: #d9534f; padding: 10px 24px; border-radius: 30px; font-size: 20px; font-weight: 800; margin-bottom: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.2);">
+        Exit <span id="exitCurrentNumber">1</span> of 3 Used
+    </div>
+    <p id="securityWarningText" style="font-size: 18px; max-width: 600px; margin-bottom: 30px; line-height: 1.6;">
+        You have exited fullscreen mode. This violation has been logged.
+    </p>
+    <button id="resumeFullscreenBtn" style="max-width: 280px; background: white; color: #d9534f; font-weight: 800; border: none; padding: 16px 30px; border-radius: 8px; font-size: 16px; cursor: pointer; box-shadow: 0 10px 20px rgba(0,0,0,0.15);">
+        Return to Fullscreen
+    </button>
+</div>
+
+<div class="container">
+    <div class="header">
+        <div style="display: flex; align-items: center; justify-content: center; gap: 10px; flex-wrap: wrap; margin-bottom: 8px;">
+            <span class="badge" id="challengeBadge">AWS Student Builder Group</span>
+            <span id="activeSetPill" style="background: linear-gradient(135deg, #059669, #10b981); color: white; padding: 6px 16px; border-radius: 20px; font-size: 13.5px; font-weight: 800; letter-spacing: 0.5px; box-shadow: 0 4px 10px rgba(16, 185, 129, 0.25); display: inline-flex; align-items: center; gap: 6px;">
+                🎯 CURRENT SET: <strong id="activeSetName" style="font-size: 15px; text-decoration: underline;">SET A</strong>
+            </span>
+        </div>
+        <h1 id="mainTitle">Technical Recruitment Test</h1>
+        <p id="challengeTitle">Loading test...</p>
+        <div id="testInfoBanner" class="test-info-badge" style="display: none;"></div>
+        <div id="countdownTimer" style="margin-top: 12px; font-size: 15px; font-weight: 700; color: #e03131; display: none;">⏳ Closes in: --h --m --s</div>
+    </div>
+
+    <!-- The Formspree/Google Sheets Web App URL goes in the action attribute below -->
+    <form id="assessmentForm" action="https://script.google.com/macros/s/AKfycbxGZ_lbpxUP_-dpCY0_JIKFWOHgmsBxx9C5K6I0C2fu2yGhZa8ym58A07IQF-bljlCr/exec" method="POST" autocomplete="off">
+
+        <!-- Hidden input for dynamic sheet routing -->
+        <input type="hidden" id="challengeId" name="challengeId" value="">
+
+        <!-- Candidate Metadata Section -->
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
+            <div class="section-label" style="margin-bottom: 0;">Candidate Details</div>
+            <div style="background: #eef2ff; color: #4338ca; padding: 6px 14px; border-radius: 8px; font-size: 13px; font-weight: 800; border: 1.5px solid #c7d2fe; display: flex; align-items: center; gap: 6px;">
+                <span>📝 Assigned Assessment:</span>
+                <strong id="detailsSetBadge" style="color: #312e81; font-size: 14.5px; text-decoration: underline;">SET A</strong>
+            </div>
+        </div>
+        <div class="student-details">
+            <div class="form-group">
+                <label for="name">Full Name *</label>
+                <input type="text" id="name" name="name" required placeholder="e.g. Alex Doe" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+            </div>
+            <div class="form-group">
+                <label for="email">Email Address *</label>
+                <input type="email" id="email" name="email" required placeholder="student@example.com" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+            </div>
+            <div class="form-group">
+                <label for="usn">USN / Roll No. *</label>
+                <input type="text" id="usn" name="usn" required placeholder="e.g. 01FE21BCS001" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+            </div>
+            <div class="form-group">
+                <label for="branch_sem">Branch &amp; Semester *</label>
+                <input type="text" id="branch_sem" name="branch_sem" required placeholder="e.g. CSE - 4th Sem" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+            </div>
+        </div>
+
+        <!-- Exam Layout Grid -->
+        <div class="exam-layout">
+            <!-- Sidebar Navigation -->
+            <div class="exam-sidebar">
+                <div style="background: linear-gradient(135deg, #1e1b4b, #3730a3); border: 1.5px solid #4f46e5; color: #e0e7ff; padding: 12px 14px; border-radius: 10px; font-size: 14px; font-weight: 800; text-align: center; margin-bottom: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; box-shadow: 0 4px 12px rgba(49, 46, 129, 0.25);">
+                    <span style="font-size: 11px; letter-spacing: 1px; color: #a5b4fc; text-transform: uppercase;">Active Paper</span>
+                    <strong id="sidebarSetBadge" style="color: #ffffff; font-size: 17px; letter-spacing: 0.5px;">SET A</strong>
+                </div>
+                <div class="attempted-badge">Attempted: <span id="attemptedCount">0</span> / <span id="totalQuestionsCount">--</span></div>
+                <div style="background: #fef2f2; border: 1.5px solid #fecaca; color: #b91c1c; padding: 10px 14px; border-radius: 8px; font-size: 13.5px; font-weight: 700; text-align: center; margin-bottom: 10px; display: flex; align-items: center; justify-content: center; gap: 6px;">
+                    <span>🔒 Screen Exits:</span>
+                    <strong id="exitBadgeCount" style="color: #dc2626; font-size: 15px;">0 / 3</strong>
+                </div>
+                <div style="background: #fff1f2; border: 1.5px solid #fecdd3; color: #be123c; padding: 10px 14px; border-radius: 8px; font-size: 13.5px; font-weight: 700; text-align: center; margin-bottom: 12px; display: flex; align-items: center; justify-content: center; gap: 6px;">
+                    <span>👀 Focus Lost:</span>
+                    <strong id="focusLostBadgeCount" style="color: #e11d48; font-size: 15px;">0 / 3</strong>
+                </div>
+                <div id="copyBadgeContainer" style="display: none; background: #fff7ed; border: 1.5px solid #fed7aa; color: #c2410c; padding: 10px 14px; border-radius: 8px; font-size: 13.5px; font-weight: 700; text-align: center; margin-bottom: 10px; align-items: center; justify-content: center; gap: 6px;">
+                    <span>📋 Copy Attempts:</span>
+                    <strong id="copyBadgeCount" style="color: #ea580c; font-size: 15px;">0</strong>
+                </div>
+                <div id="textSelectBadgeContainer" style="display: none; background: #fefce8; border: 1.5px solid #fef08a; color: #a16207; padding: 10px 14px; border-radius: 8px; font-size: 13.5px; font-weight: 700; text-align: center; margin-bottom: 10px; align-items: center; justify-content: center; gap: 6px;">
+                    <span>🔍 Text Selected:</span>
+                    <strong id="textSelectBadgeCount" style="color: #ca8a04; font-size: 15px;">0</strong>
+                </div>
+                <div id="ctrlCmdBadgeContainer" style="display: none; background: #f5f3ff; border: 1.5px solid #ddd6fe; color: #6d28d9; padding: 10px 14px; border-radius: 8px; font-size: 13.5px; font-weight: 700; text-align: center; margin-bottom: 16px; align-items: center; justify-content: center; gap: 6px;">
+                    <span>⌨️ Ctrl/Cmd Keys:</span>
+                    <strong id="ctrlCmdBadgeCount" style="color: #7c3aed; font-size: 15px;">0</strong>
+                </div>
+                <div class="sidebar-title">Assessment Sections</div>
+                <div id="sidebarTabsContainer"></div>
+            </div>
+            
+            <!-- Main Content Area -->
+            <div class="exam-content">
+                <div class="assessment-section">
+                    <span class="anti-cheat-warning" style="margin-bottom: 25px;">⚠️ Strict Security Mode: Maximum 3 fullscreen exits and 3 screen focus losses permitted before auto-lockout. Copy-pasting is strictly prohibited and logged.</span>
+                    
+                    <div id="selectSectionPlaceholder" style="background: #f8fafc; border: 2px dashed #cbd5e1; border-radius: 12px; padding: 45px 30px; text-align: center; color: #64748b; font-size: 16px; font-weight: 700; margin-top: 15px; margin-bottom: 20px; font-family: 'Segoe UI', sans-serif;">
+                        👈 Please select an assessment section from the left sidebar to view and answer the questions.
+                    </div>
+                    
+                    <div id="questionsContainer"><!-- questions injected by JS from challenges.json --></div>
+                </div>
+            </div>
+        </div>
+
+        <button type="submit" id="submitBtn">Submit Assessment</button>
+    </form>
+
+    <div id="alreadySubmittedMessage" style="display: none; background: #e6fcf5; border-left: 6px solid #0ca678; padding: 26px 28px; margin-top: 30px; border-radius: 0 14px 14px 0; text-align: center;">
+        <h3 id="alreadySubmittedTitle" style="color: #0b7285; margin-top: 0;">Submission Received!</h3>
+        <p id="alreadySubmittedText" style="margin: 0; color: #2b2b3a; font-size: 16px;">You have already successfully submitted your response for this assessment from this browser.</p>
+    </div>
+
+    <div id="challengeErrorMessage" style="display: none; background: #fff4e6; border-left: 6px solid #f08c00; padding: 26px 28px; margin-top: 30px; border-radius: 0 14px 14px 0; text-align: center;">
+        <h3 style="color: #e8590c; margin-top: 0;">⚠️ Assessment Not Found</h3>
+        <p style="margin: 0; color: #2b2b3a; font-size: 16px;">This link points to a challenge that doesn't exist in <code>challenges.json</code> yet. Please contact the administrator — do not assume this is today's assessment.</p>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const form = document.getElementById('assessmentForm');
+        const submitBtn = document.getElementById('submitBtn');
+        const messageDiv = document.getElementById('alreadySubmittedMessage');
+        const messageTitle = document.getElementById('alreadySubmittedTitle');
+        const messageText = document.getElementById('alreadySubmittedText');
+        const errorDiv = document.getElementById('challengeErrorMessage');
+        const emailInput = document.getElementById('email');
+        const challengeIdInput = document.getElementById('challengeId');
+        const questionsContainer = document.getElementById('questionsContainer');
+
+        let currentChallengeId = null;
+
+        // Telemetry tracking state
+        let tabSwitches = 0;
+        let pasteAttempts = 0;
+        let copyAttempts = 0;
+        let fullscreenExits = 0;
+        let ctrlCmdAttempts = 0;
+        let textSelectionAttempts = 0;
+        const startTime = Date.now();
+        let isSubmitted = false;
+        const telemetryEvents = [];
+        const questionTimings = {};
+        const questionViolations = {};
+        let lastActiveQuestion = null;
+        let focusLostStartTimestamp = null;
+        let focusLostActiveQuestion = null;
+        let fullscreenExitStartTimestamp = null;
+        let fullscreenExitActiveQuestion = null;
+
+        // Ensure form inputs and submit button are completely unlocked and enabled on load
+        form.querySelectorAll('input, textarea').forEach(input => input.disabled = false);
+        submitBtn.disabled = false;
+        submitBtn.style.display = 'block';
+        submitBtn.textContent = 'Submit Assessment';
+        if (messageDiv) messageDiv.style.display = 'none';
+
+        function formatSec(seconds) {
+            const m = Math.floor(seconds / 60);
+            const s = seconds % 60;
+            return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+        }
+
+        function getActiveQuestionContext(targetEl = null) {
+            // 1. If target element is provided, check closest [data-question-id] or radio/textarea
+            if (targetEl) {
+                const qBlock = (targetEl.closest) ? (targetEl.closest('[data-question-id]') || targetEl.closest('.question-block') || targetEl.closest('.answer-section')) : null;
+                if (qBlock && qBlock.getAttribute('data-question-id')) {
+                    const qId = qBlock.getAttribute('data-question-id');
+                    const qNum = parseInt(qBlock.getAttribute('data-question-num') || '0', 10);
+                    const heading = qBlock.getAttribute('data-question-heading') || ('Question ' + qNum);
+                    lastActiveQuestion = { id: qId, num: qNum, heading: heading };
+                    return lastActiveQuestion;
+                }
+                if (targetEl.name && targetEl.name.startsWith('q') && !isNaN(targetEl.name.slice(1))) {
+                    const qId = targetEl.name;
+                    const qNum = parseInt(targetEl.name.slice(1), 10);
+                    lastActiveQuestion = { id: qId, num: qNum, heading: 'Question ' + qNum };
+                    return lastActiveQuestion;
+                }
+                if (targetEl.id && targetEl.id.startsWith('q') && !isNaN(targetEl.id.slice(1))) {
+                    const qId = targetEl.id;
+                    const qNum = parseInt(targetEl.id.slice(1), 10);
+                    lastActiveQuestion = { id: qId, num: qNum, heading: 'Question ' + qNum };
+                    return lastActiveQuestion;
+                }
+            }
+
+            // 2. Check viewport: find which visible question-block is on screen
+            const blocks = document.querySelectorAll('.question-block[data-question-id]');
+            let bestBlock = null;
+            let minDistance = Infinity;
+            const viewportMid = window.innerHeight / 2;
+            blocks.forEach(b => {
+                if (b.offsetParent !== null) { // visible in the currently active tab/category
+                    const rect = b.getBoundingClientRect();
+                    if (rect.bottom > 0 && rect.top < window.innerHeight) {
+                        const blockMid = (rect.top + rect.bottom) / 2;
+                        const dist = Math.abs(blockMid - viewportMid);
+                        if (dist < minDistance) {
+                            minDistance = dist;
+                            bestBlock = b;
+                        }
+                    }
+                }
+            });
+
+            if (bestBlock) {
+                const qId = bestBlock.getAttribute('data-question-id');
+                const qNum = parseInt(bestBlock.getAttribute('data-question-num') || '0', 10);
+                const heading = bestBlock.getAttribute('data-question-heading') || ('Question ' + qNum);
+                lastActiveQuestion = { id: qId, num: qNum, heading: heading };
+                return lastActiveQuestion;
+            }
+
+            // 3. Fallback to last active question interacted with
+            if (lastActiveQuestion) {
+                return lastActiveQuestion;
+            }
+
+            // 4. Default if candidate is at the top / instructions
+            return { id: 'general', num: 0, heading: 'Candidate Details / Instructions' };
+        }
+
+        function evaluateQuestionIntegrity(qRecord) {
+            if (qRecord.copyAttempts > 0 && (qRecord.focusLosses > 0 || qRecord.totalAwaySec >= 4)) {
+                qRecord.riskLevel = 'HIGH';
+                qRecord.verdict = `DELIBERATE MALPRACTICE: Candidate attempted to copy question content and switched tabs for ${qRecord.totalAwaySec}s to look up the answer.`;
+            } else if (qRecord.textSelections > 0 && (qRecord.focusLosses > 0 || qRecord.totalAwaySec >= 6)) {
+                qRecord.riskLevel = 'HIGH';
+                qRecord.verdict = `DELIBERATE MALPRACTICE: Candidate selected question text and navigated away for ${qRecord.totalAwaySec}s.`;
+            } else if (qRecord.copyAttempts > 0) {
+                qRecord.riskLevel = 'HIGH';
+                qRecord.verdict = `DELIBERATE MALPRACTICE: Candidate attempted to copy question content (shortcut/context copy blocked).`;
+            } else if (qRecord.totalAwaySec > 10) {
+                qRecord.riskLevel = 'HIGH';
+                qRecord.verdict = `DELIBERATE MALPRACTICE: Prolonged external absence (${qRecord.totalAwaySec}s away from assessment while on this question).`;
+            } else if (qRecord.totalAwaySec >= 3 || qRecord.focusLosses > 1) {
+                qRecord.riskLevel = 'MEDIUM';
+                qRecord.verdict = `SUSPICIOUS: Left assessment screen for ${qRecord.totalAwaySec}s while on this question.`;
+            } else if (qRecord.focusLosses === 1 && qRecord.totalAwaySec <= 2 && qRecord.copyAttempts === 0 && qRecord.textSelections === 0) {
+                qRecord.riskLevel = 'LOW';
+                qRecord.verdict = `ACCIDENTAL: Momentary screen blur / trackpad gesture (${qRecord.totalAwaySec}s away), no text copied.`;
+            } else if (qRecord.fullscreenExits === 1 && qRecord.totalAwaySec <= 2 && qRecord.copyAttempts === 0) {
+                qRecord.riskLevel = 'LOW';
+                qRecord.verdict = `ACCIDENTAL: Fullscreen exit immediately resumed (< 2s away).`;
+            } else if (qRecord.ctrlCmdKeys > 0 && qRecord.copyAttempts === 0 && qRecord.textSelections === 0 && qRecord.focusLosses === 0) {
+                qRecord.riskLevel = 'LOW';
+                qRecord.verdict = `ACCIDENTAL: Modifier key pressed (Ctrl/Cmd) without copying or tab switching.`;
+            } else if (qRecord.textSelections > 0 && qRecord.copyAttempts === 0 && qRecord.focusLosses === 0) {
+                qRecord.riskLevel = 'LOW';
+                qRecord.verdict = `ACCIDENTAL / MINOR: Accidental mouse drag / text selection attempt; no content copied and never left page.`;
+            } else {
+                qRecord.riskLevel = 'LOW';
+                qRecord.verdict = `ACCIDENTAL / MINOR: Low risk activity.`;
+            }
+        }
+
+        function handleFocusRestored() {
+            if (focusLostStartTimestamp) {
+                const awayMs = Date.now() - focusLostStartTimestamp;
+                const awaySec = Math.round(awayMs / 1000);
+                focusLostStartTimestamp = null;
+                const qCtx = focusLostActiveQuestion || getActiveQuestionContext();
+                focusLostActiveQuestion = null;
+
+                let verdict = "";
+                let risk = "LOW";
+                if (awaySec <= 2) {
+                    verdict = `ACCIDENTAL: Momentary screen blur / trackpad swipe (${awaySec}s away)`;
+                    risk = "LOW";
+                } else if (awaySec <= 8) {
+                    verdict = `SUSPICIOUS: Navigated away from assessment (${awaySec}s away)`;
+                    risk = "MEDIUM";
+                } else {
+                    verdict = `DELIBERATE MALPRACTICE: Left test window for external lookup (${awaySec}s away)`;
+                    risk = "HIGH";
+                }
+
+                logSecurityViolation('focus_regained', {
+                    awayDurationSec: awaySec,
+                    verdict: verdict,
+                    risk: risk
+                }, null, qCtx);
+            }
+        }
+
+        function handleFullscreenRestored() {
+            if (fullscreenExitStartTimestamp) {
+                const awayMs = Date.now() - fullscreenExitStartTimestamp;
+                const awaySec = Math.round(awayMs / 1000);
+                fullscreenExitStartTimestamp = null;
+                const qCtx = fullscreenExitActiveQuestion || getActiveQuestionContext();
+                fullscreenExitActiveQuestion = null;
+
+                let verdict = "";
+                let risk = "LOW";
+                if (awaySec <= 2) {
+                    verdict = `ACCIDENTAL: Fullscreen exit dismissed immediately (${awaySec}s away)`;
+                    risk = "LOW";
+                } else if (awaySec <= 8) {
+                    verdict = `SUSPICIOUS: Stayed out of fullscreen mode (${awaySec}s away)`;
+                    risk = "MEDIUM";
+                } else {
+                    verdict = `DELIBERATE MALPRACTICE: Stayed out of fullscreen mode (${awaySec}s away)`;
+                    risk = "HIGH";
+                }
+
+                logSecurityViolation('fullscreen_resumed', {
+                    awayDurationSec: awaySec,
+                    verdict: verdict,
+                    risk: risk
+                }, null, qCtx);
+            }
+        }
+
+        function recordQuestionAttempt(qId, qIndex, value) {
+            const now = Date.now();
+            const elapsedSec = Math.round((now - startTime) / 1000);
+
+            if (!questionTimings[qId]) {
+                questionTimings[qId] = {
+                    questionNumber: qIndex,
+                    questionId: qId,
+                    firstAttemptAtSec: elapsedSec,
+                    firstAttemptFormatted: formatSec(elapsedSec),
+                    firstAttemptTimestamp: new Date(now).toISOString(),
+                    lastAttemptAtSec: elapsedSec,
+                    lastAttemptFormatted: formatSec(elapsedSec),
+                    lastAttemptTimestamp: new Date(now).toISOString(),
+                    changesCount: 1,
+                    selectedAnswer: value
+                };
+            } else {
+                questionTimings[qId].lastAttemptAtSec = elapsedSec;
+                questionTimings[qId].lastAttemptFormatted = formatSec(elapsedSec);
+                questionTimings[qId].lastAttemptTimestamp = new Date(now).toISOString();
+                questionTimings[qId].changesCount++;
+                questionTimings[qId].selectedAnswer = value;
+            }
+
+            logSecurityViolation('question_attempted', {
+                questionNumber: qIndex,
+                questionId: qId,
+                selectedOption: value,
+                timeIntoTestSec: elapsedSec,
+                timeFormatted: formatSec(elapsedSec)
+            }, null, { id: qId, num: qIndex, heading: 'Question ' + qIndex });
+        }
+
+        function logSecurityViolation(type, detail = {}, targetEl = null, explicitCtx = null) {
+            const qCtx = explicitCtx || getActiveQuestionContext(targetEl);
+            const now = Date.now();
+            const elapsedSec = Math.round((now - startTime) / 1000);
+            const timeFormatted = formatSec(elapsedSec);
+
+            const entry = {
+                type: type,
+                timestamp: new Date().toISOString(),
+                elapsedSec: elapsedSec,
+                timeFormatted: timeFormatted,
+                questionId: qCtx.id,
+                questionNumber: qCtx.num,
+                questionHeading: qCtx.heading,
+                detail: detail
+            };
+            telemetryEvents.push(entry);
+            console.warn(`[PROCTOR AUDIT] ${type.toUpperCase()} on Q${qCtx.num} (${qCtx.id}):`, entry);
+
+            // Group proctoring violations per question (excluding routine question attempts)
+            if (type !== 'question_attempted') {
+                const qId = qCtx.id;
+                if (!questionViolations[qId]) {
+                    questionViolations[qId] = {
+                        questionId: qId,
+                        questionNumber: qCtx.num,
+                        questionHeading: qCtx.heading,
+                        violationsCount: 0,
+                        copyAttempts: 0,
+                        textSelections: 0,
+                        ctrlCmdKeys: 0,
+                        focusLosses: 0,
+                        fullscreenExits: 0,
+                        totalAwaySec: 0,
+                        violations: [],
+                        verdict: 'Clean',
+                        riskLevel: 'LOW'
+                    };
+                }
+
+                const qRecord = questionViolations[qId];
+                qRecord.violationsCount++;
+
+                let violationLabel = type;
+                if (type === 'ctrl_cmd_key_pressed' || type === 'ctrl_cmd_combo') {
+                    qRecord.ctrlCmdKeys++;
+                    violationLabel = `Modifier key: ${detail.key || detail.combo || 'Ctrl/Cmd'}`;
+                } else if (type === 'text_select_attempt' || type === 'text_selected' || type === 'select_all_blocked') {
+                    qRecord.textSelections++;
+                    violationLabel = `Text selection attempt: "${detail.snippet || detail.target || 'question'}"`;
+                } else if (type === 'copy_attempt' || type === 'copy_shortcut' || type === 'cut_attempt') {
+                    qRecord.copyAttempts++;
+                    violationLabel = `Copy attempt blocked: ${detail.key || detail.target || 'content'}`;
+                } else if (type === 'paste_attempt' || type === 'paste_shortcut') {
+                    violationLabel = `Paste attempt blocked`;
+                } else if (type === 'focus_lost') {
+                    qRecord.focusLosses++;
+                    violationLabel = `Screen focus lost / tab switch`;
+                } else if (type === 'focus_regained') {
+                    const away = detail.awayDurationSec || 0;
+                    qRecord.totalAwaySec += away;
+                    violationLabel = `Screen focus returned (away for ${away}s) — ${detail.verdict || ''}`;
+                } else if (type === 'fullscreen_exit') {
+                    qRecord.fullscreenExits++;
+                    violationLabel = `Fullscreen exited`;
+                } else if (type === 'fullscreen_resumed') {
+                    const away = detail.awayDurationSec || 0;
+                    qRecord.totalAwaySec += away;
+                    violationLabel = `Fullscreen resumed (out for ${away}s) — ${detail.verdict || ''}`;
+                }
+
+                qRecord.violations.push({
+                    time: timeFormatted,
+                    elapsedSec: elapsedSec,
+                    type: type,
+                    summary: violationLabel,
+                    detail: detail
+                });
+
+                evaluateQuestionIntegrity(qRecord);
+            }
+
+            try {
+                localStorage.setItem('telemetry_events_' + (currentChallengeId || 'default'), JSON.stringify(telemetryEvents));
+                localStorage.setItem('telemetry_q_violations_' + (currentChallengeId || 'default'), JSON.stringify(questionViolations));
+            } catch (e) {}
+        }
+
+        function updateSecurityBadges() {
+            const copyBadge = document.getElementById('copyBadgeContainer');
+            const copyCountEl = document.getElementById('copyBadgeCount');
+            if (copyBadge && copyCountEl) {
+                copyCountEl.innerText = copyAttempts;
+                if (copyAttempts > 0) copyBadge.style.display = 'flex';
+            }
+
+            const selectBadge = document.getElementById('textSelectBadgeContainer');
+            const selectCountEl = document.getElementById('textSelectBadgeCount');
+            if (selectBadge && selectCountEl) {
+                selectCountEl.innerText = textSelectionAttempts;
+                if (textSelectionAttempts > 0) selectBadge.style.display = 'flex';
+            }
+
+            const ctrlBadge = document.getElementById('ctrlCmdBadgeContainer');
+            const ctrlCountEl = document.getElementById('ctrlCmdBadgeCount');
+            if (ctrlBadge && ctrlCountEl) {
+                ctrlCountEl.innerText = ctrlCmdAttempts;
+                if (ctrlCmdAttempts > 0) ctrlBadge.style.display = 'flex';
+            }
+        }
+        function updateCopyBadge() { updateSecurityBadges(); }
+
+        const fsModal = document.getElementById('fullscreenModal');
+        const warningOverlay = document.getElementById('securityWarningOverlay');
+        const enterFsBtn = document.getElementById('enterFullscreenBtn');
+        const resumeFsBtn = document.getElementById('resumeFullscreenBtn');
+
+        function getDeviceType() {
+            const ua = navigator.userAgent;
+            if (/(tablet|ipad|playbook|silk)|(android(?!.*mobi))/i.test(ua)) return "Tablet";
+            if (/Mobile|iP(hone|od)|Android|BlackBerry|IEMobile|Kindle|Silk-Accelerated|(hpw|web)OS|Opera M(obi|ini)/i.test(ua)) return "Mobile";
+            return "Desktop";
+        }
+
+        function requestFullscreen() {
+            const docEl = document.documentElement;
+            if (docEl.requestFullscreen) docEl.requestFullscreen();
+            else if (docEl.mozRequestFullScreen) docEl.mozRequestFullScreen();
+            else if (docEl.webkitRequestFullscreen) docEl.webkitRequestFullscreen();
+            else if (docEl.msRequestFullscreen) docEl.msRequestFullscreen();
+        }
+
+        function isFullscreen() {
+            return document.fullscreenElement || 
+                   document.webkitFullscreenElement || 
+                   document.mozFullScreenElement || 
+                   document.msFullscreenElement;
+        }
+
+        enterFsBtn.addEventListener('click', function() {
+            requestFullscreen();
+            fsModal.style.display = 'none';
+        });
+
+        resumeFsBtn.addEventListener('click', function() {
+            requestFullscreen();
+            warningOverlay.style.display = 'none';
+            handleFullscreenRestored();
+            handleFocusRestored();
+        });
+
+        // Fullscreen Change Listeners
+        const fsEvents = ['fullscreenchange', 'webkitfullscreenchange', 'mozfullscreenchange', 'MSFullscreenChange'];
+        fsEvents.forEach(evt => document.addEventListener(evt, handleFullscreenChange));
+
+        function handleFullscreenChange() {
+            if (isSubmitted) return;
+            if (fsModal.style.display === 'none') {
+                if (!isFullscreen()) {
+                    fullscreenExits++;
+                    fullscreenExitStartTimestamp = Date.now();
+                    fullscreenExitActiveQuestion = getActiveQuestionContext();
+                    logSecurityViolation('fullscreen_exit', { count: fullscreenExits }, null, fullscreenExitActiveQuestion);
+                    const exitBadge = document.getElementById('exitBadgeCount');
+                    if (exitBadge) exitBadge.innerText = `${fullscreenExits} / 3`;
+
+                    if (fullscreenExits >= 3) {
+                        warningOverlay.innerHTML = `
+                            <div style="font-size: 60px; margin-bottom: 16px;">🔒</div>
+                            <h2 style="font-size: 34px; font-weight: 800; margin-bottom: 16px; color: white; font-family: 'Segoe UI', sans-serif;">Assessment Locked</h2>
+                            <p style="font-size: 18px; max-width: 620px; margin-bottom: 24px; line-height: 1.6; color: #ffe3e3; font-family: 'Segoe UI', sans-serif;">
+                                You have reached the maximum allowed limit of <strong>3 fullscreen exits (3/3)</strong>.<br>
+                                Your session is permanently locked and your responses have been frozen.
+                            </p>
+                        `;
+                        warningOverlay.style.display = 'flex';
+                        disableForm(true);
+                    } else {
+                        const tagEl = document.getElementById('securityWarningTag');
+                        const titleEl = document.getElementById('securityWarningTitle');
+                        const pillEl = document.getElementById('securityWarningPill');
+                        const warnText = document.getElementById('securityWarningText');
+                        const resumeBtn = document.getElementById('resumeFullscreenBtn');
+
+                        if (tagEl) tagEl.innerText = "⚠️ SECURITY VIOLATION: FULLSCREEN EXITED";
+                        if (titleEl) titleEl.innerText = "Fullscreen Exit Warning";
+                        if (pillEl) pillEl.innerHTML = `Exit <span id="exitCurrentNumber">${fullscreenExits}</span> of 3 Used`;
+                        if (resumeBtn) resumeBtn.innerText = "Return to Fullscreen";
+
+                        const remaining = 3 - fullscreenExits;
+                        if (warnText) {
+                            warnText.innerHTML = `
+                                You exited fullscreen mode (<strong>${fullscreenExits}/3 exits used</strong>).<br>
+                                ⚠️ <strong>${remaining} exit${remaining === 1 ? '' : 's'} remaining</strong> before your assessment is permanently locked!
+                            `;
+                        }
+                        warningOverlay.style.display = 'flex';
+                    }
+                } else {
+                    handleFullscreenRestored();
+                }
+            }
+        }
+
+        // Screen Focus Lost (Tab switch / window blur / minimizing) with 3-times limit
+        let lastFocusLossTime = 0;
+        let blurCheckTimeout = null;
+        let lastTabPressTime = 0;
+
+        function triggerFocusLoss(reason) {
+            if (isSubmitted) return;
+            if (fsModal.style.display !== 'none') return;
+            
+            // Debounce within 1.5s to prevent dual-triggering from blur + visibilitychange on the same tab switch
+            const now = Date.now();
+            if (now - lastFocusLossTime < 1500) return;
+            lastFocusLossTime = now;
+
+            tabSwitches++;
+            focusLostStartTimestamp = Date.now();
+            focusLostActiveQuestion = getActiveQuestionContext();
+            logSecurityViolation('focus_lost', { count: tabSwitches, reason: reason }, null, focusLostActiveQuestion);
+
+            const focusBadge = document.getElementById('focusLostBadgeCount');
+            if (focusBadge) focusBadge.innerText = `${tabSwitches} / 3`;
+
+            if (tabSwitches >= 3) {
+                warningOverlay.innerHTML = `
+                    <div style="font-size: 60px; margin-bottom: 16px;">🔒</div>
+                    <h2 style="font-size: 34px; font-weight: 800; margin-bottom: 16px; color: white; font-family: 'Segoe UI', sans-serif;">Assessment Locked</h2>
+                    <p style="font-size: 18px; max-width: 620px; margin-bottom: 24px; line-height: 1.6; color: #ffe3e3; font-family: 'Segoe UI', sans-serif;">
+                        You have reached the maximum allowed limit of <strong>3 screen focus losses / tab switches (3/3)</strong>.<br>
+                        Your session is permanently locked and your responses have been frozen.
+                    </p>
+                `;
+                warningOverlay.style.display = 'flex';
+                disableForm(true);
+            } else {
+                const tagEl = document.getElementById('securityWarningTag');
+                const titleEl = document.getElementById('securityWarningTitle');
+                const pillEl = document.getElementById('securityWarningPill');
+                const warnText = document.getElementById('securityWarningText');
+                const resumeBtn = document.getElementById('resumeFullscreenBtn');
+
+                if (tagEl) tagEl.innerText = "⚠️ SECURITY VIOLATION: SCREEN FOCUS LOST";
+                if (titleEl) titleEl.innerText = "Screen Focus Lost Warning";
+                if (pillEl) pillEl.innerHTML = `Focus Lost <span id="exitCurrentNumber">${tabSwitches}</span> of 3 Used`;
+                if (resumeBtn) resumeBtn.innerText = "Resume Assessment";
+
+                const remaining = 3 - tabSwitches;
+                if (warnText) {
+                    warnText.innerHTML = `
+                        You navigated away or switched tabs during the assessment (<strong>${tabSwitches}/3 focus losses used</strong>).<br>
+                        ⚠️ <strong>${remaining} warning${remaining === 1 ? '' : 's'} remaining</strong> before your assessment is permanently locked!
+                    `;
+                }
+                warningOverlay.style.display = 'flex';
+                showToast(`⚠️ Security Warning: Screen focus lost (${tabSwitches}/3)! Violation logged.`);
+            }
+        }
+
+        // True tab switch or window minimized: document.visibilitychange
+        document.addEventListener('visibilitychange', function() {
+            if (document.hidden) {
+                triggerFocusLoss('visibility_hidden');
+            } else {
+                if (blurCheckTimeout) {
+                    clearTimeout(blurCheckTimeout);
+                    blurCheckTimeout = null;
+                }
+                handleFocusRestored();
+            }
+        });
+
+        // Window blur with grace period & activeElement check
+        window.addEventListener('blur', function() {
+            // Ignore if user just pressed Tab key (intra-page keyboard navigation)
+            if (Date.now() - lastTabPressTime < 1500) {
+                return;
+            }
+
+            if (warningOverlay.style.display !== 'none' || fsModal.style.display !== 'none') {
+                return;
+            }
+
+            if (blurCheckTimeout) clearTimeout(blurCheckTimeout);
+
+            // 450ms grace period: handles clicking email/inputs, extension popups, autocomplete, and focus transitions
+            blurCheckTimeout = setTimeout(function() {
+                if (isSubmitted) return;
+
+                // 1. If document is still considered focused by the browser, candidate is on the page
+                if (document.hasFocus()) {
+                    return;
+                }
+
+                // 2. If candidate is currently focused on any input/element inside the page
+                const active = document.activeElement;
+                if (active && (
+                    active.tagName === 'INPUT' ||
+                    active.tagName === 'TEXTAREA' ||
+                    active.tagName === 'BUTTON' ||
+                    active.tagName === 'SELECT' ||
+                    (active.closest && (active.closest('#assessmentForm') || active.closest('.container')))
+                )) {
+                    return;
+                }
+
+                // 3. If window genuinely lost focus to another desktop app or tab
+                triggerFocusLoss('window_blur');
+            }, 450);
+        });
+
+        window.addEventListener('focus', function() {
+            if (blurCheckTimeout) {
+                clearTimeout(blurCheckTimeout);
+                blurCheckTimeout = null;
+            }
+            handleFocusRestored();
+        });
+
+        // Block and log text selection attempts (strictly on exam content, NOT candidate details)
+        document.addEventListener('selectstart', function(e) {
+            if (isSubmitted) return;
+            // Never block selection inside candidate details or inputs
+            if (e.target.closest && (e.target.closest('.student-details') || e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) {
+                return;
+            }
+            // Block selection on exam questions, code blocks, and test instructions
+            if (e.target.closest && (e.target.closest('.exam-content') || e.target.closest('.question-block') || e.target.closest('.mcq-option'))) {
+                e.preventDefault();
+                textSelectionAttempts++;
+                logSecurityViolation('text_select_attempt', {
+                    target: e.target ? (e.target.id || e.target.className || e.target.tagName) : 'unknown',
+                    count: textSelectionAttempts
+                }, e.target);
+                updateSecurityBadges();
+                showToast("⚠️ Text selection of exam questions is prohibited.");
+            }
+        }, true);
+
+        // Detect if text actually got selected anywhere inside exam content
+        let lastSelectionTime = 0;
+        document.addEventListener('selectionchange', function() {
+            if (isSubmitted) return;
+            const sel = window.getSelection();
+            if (!sel || sel.rangeCount === 0) return;
+            const text = sel.toString().trim();
+            if (!text || text.length === 0) return;
+
+            const activeEl = document.activeElement;
+            if (activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA')) {
+                return;
+            }
+
+            const anchor = sel.anchorNode;
+            const anchorEl = anchor ? (anchor.nodeType === 1 ? anchor : anchor.parentElement) : null;
+            if (anchorEl && anchorEl.closest && (anchorEl.closest('.student-details') || anchorEl.closest('input') || anchorEl.closest('textarea'))) {
+                return;
+            }
+
+            if (anchorEl && anchorEl.closest && (anchorEl.closest('.exam-content') || anchorEl.closest('.question-block'))) {
+                const now = Date.now();
+                if (now - lastSelectionTime < 1000) return;
+                lastSelectionTime = now;
+                textSelectionAttempts++;
+                logSecurityViolation('text_selected', {
+                    snippet: text.length > 60 ? text.slice(0, 60) + '...' : text,
+                    length: text.length,
+                    count: textSelectionAttempts
+                }, anchorEl);
+                updateSecurityBadges();
+                showToast(`⚠️ Text Selected: "${text.length > 25 ? text.slice(0, 25) + '...' : text}" - Violation logged!`);
+                sel.removeAllRanges();
+            }
+        });
+
+        // Block & log copying globally (question text, options, code snippets, inputs)
+        document.addEventListener('copy', function(e) {
+            if (isSubmitted) return;
+            e.preventDefault();
+            copyAttempts++;
+            logSecurityViolation('copy_attempt', {
+                target: e.target ? (e.target.id || e.target.className || e.target.tagName) : 'unknown',
+                count: copyAttempts
+            }, e.target);
+            updateSecurityBadges();
+            showToast("⚠️ Copy Blocked! Copying question or exam content is prohibited and logged.");
+        }, true);
+
+        // Block & log cut globally
+        document.addEventListener('cut', function(e) {
+            if (isSubmitted) return;
+            e.preventDefault();
+            copyAttempts++;
+            logSecurityViolation('cut_attempt', {
+                target: e.target ? (e.target.id || e.target.className || e.target.tagName) : 'unknown',
+                count: copyAttempts
+            }, e.target);
+            updateSecurityBadges();
+            showToast("⚠️ Cut Blocked! Content editing shortcuts are prohibited and logged.");
+        }, true);
+
+        // Block & log pasting globally
+        document.addEventListener('paste', function(e) {
+            if (isSubmitted) return;
+            e.preventDefault();
+            pasteAttempts++;
+            logSecurityViolation('paste_attempt', { count: pasteAttempts }, e.target);
+            showToast("⚠️ Paste Blocked! Pasting content is prohibited and logged.");
+        }, true);
+
+        // Block drag & drop globally
+        document.addEventListener('drop', function(e) {
+            if (isSubmitted) return;
+            e.preventDefault();
+            showToast("⚠️ Drag & Drop Blocked!");
+        }, true);
+
+        // Block contextmenu (right click) globally
+        document.addEventListener('contextmenu', function(e) {
+            if (isSubmitted) return;
+            e.preventDefault();
+            showToast("⚠️ Right-click context menu is disabled.");
+        }, true);
+
+        // Intercept & log Control, Command, and keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            if (isSubmitted) return;
+
+            // Handle Tab navigation safely
+            if (e.key === 'Tab') {
+                lastTabPressTime = Date.now();
+                if (document.activeElement && document.activeElement.id === 'branch_sem' && !e.shiftKey) {
+                    const firstOption = form.querySelector('.mcq-option input[type="radio"]') || form.querySelector('textarea') || form.querySelector('.nav-tab');
+                    if (firstOption) {
+                        e.preventDefault();
+                        firstOption.focus();
+                        return;
+                    }
+                }
+                if (document.activeElement && document.activeElement.id === 'submitBtn' && !e.shiftKey) {
+                    const nameInput = document.getElementById('name');
+                    if (nameInput) {
+                        e.preventDefault();
+                        nameInput.focus();
+                        return;
+                    }
+                }
+                return;
+            }
+            const key = (e.key || '').toLowerCase();
+            const isModifier = e.ctrlKey || e.metaKey;
+
+            // Log standalone Control or Command (Meta) key press
+            if (e.key === 'Control' || e.key === 'Meta') {
+                ctrlCmdAttempts++;
+                logSecurityViolation('ctrl_cmd_key_pressed', {
+                    key: e.key === 'Meta' ? 'Command (Cmd)' : 'Control (Ctrl)',
+                    count: ctrlCmdAttempts
+                }, e.target);
+                updateSecurityBadges();
+                showToast(`⚠️ ${e.key === 'Meta' ? 'Command (Cmd)' : 'Control (Ctrl)'} key pressed! Violation logged.`);
+                return;
+            }
+
+            // If any key is pressed while Control or Command is active
+            if (isModifier) {
+                ctrlCmdAttempts++;
+                const comboName = (e.metaKey ? 'Cmd+' : 'Ctrl+') + (e.shiftKey ? 'Shift+' : '') + key.toUpperCase();
+                logSecurityViolation('ctrl_cmd_combo', { combo: comboName, count: ctrlCmdAttempts }, e.target);
+                updateSecurityBadges();
+
+                // Block Select All outside inputs
+                if (key === 'a') {
+                    if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') {
+                        e.preventDefault();
+                        textSelectionAttempts++;
+                        logSecurityViolation('select_all_blocked', { combo: comboName, count: textSelectionAttempts }, e.target);
+                        updateSecurityBadges();
+                        showToast("⚠️ Select All Blocked & Logged!");
+                        return;
+                    }
+                }
+
+                // Block Copy / Cut
+                if (key === 'c' || key === 'x') {
+                    e.preventDefault();
+                    copyAttempts++;
+                    logSecurityViolation('copy_shortcut', { key: comboName, count: copyAttempts }, e.target);
+                    updateSecurityBadges();
+                    showToast("⚠️ Copy Shortcut Blocked! Violation logged.");
+                    return;
+                }
+
+                // Block Paste
+                if (key === 'v') {
+                    e.preventDefault();
+                    pasteAttempts++;
+                    logSecurityViolation('paste_shortcut', { key: comboName, count: pasteAttempts }, e.target);
+                    updateSecurityBadges();
+                    showToast("⚠️ Paste Shortcut Blocked! Please type your response.");
+                    return;
+                }
+
+                // Block Find (Cmd/Ctrl + F)
+                if (key === 'f') {
+                    e.preventDefault();
+                    showToast("⚠️ In-page search is disabled and logged.");
+                    return;
+                }
+
+                // Block Print / Save
+                if (key === 'p' || key === 's') {
+                    e.preventDefault();
+                    showToast("⚠️ Print/Save shortcuts are disabled and logged.");
+                    return;
+                }
+
+                // Block DevTools shortcuts
+                if ((e.shiftKey && ['i', 'j', 'c'].includes(key)) || key === 'u') {
+                    e.preventDefault();
+                    logSecurityViolation('devtools_shortcut_blocked', { key: comboName }, e.target);
+                    showToast("⚠️ Developer tools shortcuts are disabled and logged.");
+                    return;
+                }
+            }
+
+            // Block F12
+            if (key === 'f12') {
+                e.preventDefault();
+                logSecurityViolation('devtools_shortcut_blocked', { key: 'F12' }, e.target);
+                showToast("⚠️ Developer tools shortcut (F12) is disabled.");
+                return;
+            }
+        }, true);
+
+        // Public helper for audit extraction & live inspection
+        window.getProctorLogs = function() {
+            const report = {
+                total_fullscreen_exits: fullscreenExits,
+                total_tab_switches: tabSwitches,
+                total_ctrl_cmd_attempts: ctrlCmdAttempts,
+                total_text_selection_attempts: textSelectionAttempts,
+                total_copy_attempts: copyAttempts,
+                total_paste_attempts: pasteAttempts,
+                question_timings: questionTimings,
+                question_violations: questionViolations,
+                events: telemetryEvents
+            };
+            console.log("=== QUESTION ATTEMPT TIMINGS ===");
+            console.table(questionTimings);
+            console.log("=== PER-QUESTION VIOLATIONS ===");
+            console.table(questionViolations);
+            console.log("=== SECURITY TELEMETRY EVENTS ===");
+            console.table(telemetryEvents);
+            console.log("Telemetry Proctoring Summary:", report);
+            return report;
+        };
+
+        function showToast(message) {
+            const toast = document.createElement('div');
+            toast.style.position = 'fixed';
+            toast.style.top = '30px';
+            toast.style.left = '50%';
+            toast.style.transform = 'translateX(-50%)';
+            toast.style.background = '#d9534f';
+            toast.style.color = 'white';
+            toast.style.padding = '14px 28px';
+            toast.style.borderRadius = '8px';
+            toast.style.fontWeight = '700';
+            toast.style.fontSize = '15px';
+            toast.style.zIndex = '11000';
+            toast.style.boxShadow = '0 6px 20px rgba(0,0,0,0.2)';
+            toast.style.border = '1px solid rgba(255,255,255,0.2)';
+            toast.innerText = message;
+            document.body.appendChild(toast);
+            setTimeout(() => {
+                toast.style.transition = 'opacity 0.5s ease';
+                toast.style.opacity = '0';
+                setTimeout(() => toast.remove(), 500);
+            }, 3000);
+        }
+
+        // Clear old submission locks and timers so the test is fresh, unlocked, and has full time
+        for (let i = localStorage.length - 1; i >= 0; i--) {
+            const k = localStorage.key(i);
+            if (k && (k.startsWith('submitted_') || k.startsWith('test_start_') || k.startsWith('telemetry_'))) {
+                localStorage.removeItem(k);
+            }
+        }
+
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('reset') === '1' || urlParams.get('clear') === '1') {
+            localStorage.clear();
+            sessionStorage.clear();
+        }
+
+        // Load challenge data from config file with cache busting
+        fetch('challenges.json?t=' + Date.now())
+            .then(res => {
+                if (!res.ok) throw new Error('Could not load challenges configuration.');
+                return res.json();
+            })
+            .then(data => {
+                const urlParams = new URLSearchParams(window.location.search);
+                const requestedChallenge = urlParams.get('challenge');
+                const availableSetKeys = Object.keys(data.challenges || {});
+
+                // Random selection among available sets (set_a, set_b, set_c) with session persistence
+                let challengeToLoad = requestedChallenge;
+                if (!challengeToLoad) {
+                    const savedSet = sessionStorage.getItem('assigned_challenge_set');
+                    if (savedSet && data.challenges[savedSet]) {
+                        challengeToLoad = savedSet;
+                    } else if (availableSetKeys.length > 0) {
+                        challengeToLoad = availableSetKeys[Math.floor(Math.random() * availableSetKeys.length)];
+                        sessionStorage.setItem('assigned_challenge_set', challengeToLoad);
+                    } else {
+                        challengeToLoad = data.activeChallenge || 'set_a';
+                    }
+                }
+
+                const challenge = data.challenges[challengeToLoad];
+                if (!challenge) {
+                    form.style.display = 'none';
+                    errorDiv.style.display = 'block';
+                    document.getElementById('challengeTitle').innerText = "Assessment not found";
+                    console.error('Requested challenge "' + challengeToLoad + '" does not exist in challenges.json.');
+                    return;
+                }
+
+                currentChallengeId = challengeToLoad;
+                window.currentChallenge = challenge;
+
+                // Determine clean human-readable set label (e.g. "SET A", "SET B", "SET C")
+                let setLabel = "SET A";
+                if (challengeToLoad.includes('set_b') || (challenge.title && challenge.title.includes('SET B'))) {
+                    setLabel = "SET B";
+                } else if (challengeToLoad.includes('set_c') || (challenge.title && challenge.title.includes('SET C'))) {
+                    setLabel = "SET C";
+                } else if (challengeToLoad.includes('set_a') || (challenge.title && challenge.title.includes('SET A'))) {
+                    setLabel = "SET A";
+                } else if (challenge.tabName) {
+                    setLabel = challenge.tabName.split('-')[0].trim();
+                }
+                window.currentSetLabel = setLabel;
+
+                // Render active set indicators in UI
+                const activeSetNameEl = document.getElementById('activeSetName');
+                if (activeSetNameEl) activeSetNameEl.innerText = setLabel;
+
+                const sidebarSetBadgeEl = document.getElementById('sidebarSetBadge');
+                if (sidebarSetBadgeEl) sidebarSetBadgeEl.innerText = setLabel;
+
+                const detailsSetBadgeEl = document.getElementById('detailsSetBadge');
+                if (detailsSetBadgeEl) detailsSetBadgeEl.innerText = setLabel;
+
+                // Render challenge title & badge
+                const badgeEl = document.getElementById('challengeBadge');
+                if (badgeEl) badgeEl.innerText = `${setLabel} • AWS Student Builder Group`;
+
+                const mainTitleEl = document.getElementById('mainTitle');
+                if (mainTitleEl) mainTitleEl.innerText = `Technical Recruitment Test — ${setLabel}`;
+
+                const titleEl = document.getElementById('challengeTitle');
+                if (titleEl) titleEl.innerText = challenge.title;
+                document.title = `${setLabel} — ${challenge.title}`;
+
+                const bannerEl = document.getElementById('testInfoBanner');
+                if (bannerEl) {
+                    const qCount = (challenge.questions || []).length;
+                    const durationText = challenge.durationMinutes ? `${challenge.durationMinutes} Minutes` : '';
+                    bannerEl.innerHTML = `🎯 <strong>Current Set: ${setLabel}</strong> &nbsp;|&nbsp; ⏱️ ${durationText || '25 Minutes'} &nbsp;|&nbsp; 📝 ${qCount} Questions &nbsp;|&nbsp; Single Correct MCQs`;
+                    bannerEl.style.display = 'inline-flex';
+                }
+
+                // Set sheet routing property (which tab/sheet this submission goes to)
+                challengeIdInput.value = challenge.tabName || `${setLabel} - Recruitment Test`;
+
+                // Dynamic sections configuration
+                let sectionsConfig = challenge.sections;
+                if (!sectionsConfig || sectionsConfig.length === 0) {
+                    // Legacy fallback
+                    sectionsConfig = [
+                        { id: 'conceptual', title: '📝 Simple Conceptual' },
+                        { id: 'mcq', title: '🖼️ MCQs & Visuals' },
+                        { id: 'numerical', title: '🔢 Numerical Problems' },
+                        { id: 'matching', title: '🔗 Match & Proofs' }
+                    ];
+                }
+
+                const sections = {};
+                const tabsContainer = document.getElementById('sidebarTabsContainer');
+                if (tabsContainer) tabsContainer.innerHTML = '';
+
+                sectionsConfig.forEach((sec, idx) => {
+                    const secDiv = document.createElement('div');
+                    secDiv.id = 'sec_' + sec.id;
+                    sections[sec.id] = secDiv;
+
+                    if (tabsContainer) {
+                        const tabEl = document.createElement('div');
+                        tabEl.className = 'nav-tab' + (idx === 0 ? ' active' : '');
+                        tabEl.setAttribute('data-target', 'sec_' + sec.id);
+                        tabEl.innerText = sec.title;
+                        tabsContainer.appendChild(tabEl);
+                    }
+                });
+
+                // Clear container and append category divisions
+                questionsContainer.innerHTML = '';
+                Object.values(sections).forEach(sec => questionsContainer.appendChild(sec));
+
+                const isCategorized = (challenge.questions || []).some(q => q.category);
+                const sidebarEl = document.querySelector('.exam-sidebar');
+                const layoutEl = document.querySelector('.exam-layout');
+                const placeholderEl = document.getElementById('selectSectionPlaceholder');
+
+                if (isCategorized) {
+                    if (sidebarEl) sidebarEl.style.display = 'block';
+                    if (layoutEl) {
+                        layoutEl.style.gridTemplateColumns = window.innerWidth > 768 ? '1fr 3fr' : '1fr';
+                    }
+                    if (placeholderEl) placeholderEl.style.display = 'none';
+
+                    // Show first category by default
+                    sectionsConfig.forEach((sec, idx) => {
+                        sections[sec.id].style.display = (idx === 0) ? 'block' : 'none';
+                    });
+                } else {
+                    if (sidebarEl) sidebarEl.style.display = 'none';
+                    if (layoutEl) layoutEl.style.gridTemplateColumns = '1fr';
+                    if (placeholderEl) placeholderEl.style.display = 'none';
+                    if (sectionsConfig[0] && sections[sectionsConfig[0].id]) {
+                        sections[sectionsConfig[0].id].style.display = 'block';
+                    }
+                }
+
+                // Partition questions by category
+                const partitionedQuestions = {};
+                sectionsConfig.forEach(sec => {
+                    partitionedQuestions[sec.id] = [];
+                });
+
+                (challenge.questions || []).forEach(q => {
+                    const cat = q.category || sectionsConfig[0].id;
+                    if (partitionedQuestions[cat]) {
+                        partitionedQuestions[cat].push(q);
+                    } else if (sectionsConfig[0]) {
+                        partitionedQuestions[sectionsConfig[0].id].push(q);
+                    }
+                });
+
+                let globalIndex = 0;
+                sectionsConfig.forEach(sec => {
+                    const targetSec = sections[sec.id];
+                    const qList = partitionedQuestions[sec.id] || [];
+
+                    qList.forEach(q => {
+                        globalIndex++;
+                        const currentQNum = globalIndex;
+
+                        let cleanHeading = q.heading || ('Question ' + globalIndex);
+                        if (cleanHeading.indexOf(':') !== -1 && cleanHeading.toLowerCase().startsWith('question')) {
+                            cleanHeading = cleanHeading.substring(cleanHeading.indexOf(':') + 1).trim();
+                        }
+
+                        const block = document.createElement('div');
+                        block.className = 'question-block';
+                        block.setAttribute('data-question-id', q.id);
+                        block.setAttribute('data-question-num', currentQNum);
+                        block.setAttribute('data-question-heading', cleanHeading);
+                        block.id = 'question_block_' + q.id;
+                        block.style.marginBottom = '15px';
+                        block.addEventListener('mouseenter', function() {
+                            lastActiveQuestion = { id: q.id, num: currentQNum, heading: cleanHeading };
+                        });
+
+                        let innerHtml = '<h3>Question ' + currentQNum + ': ' + escapeHtml(cleanHeading) + '</h3>';
+                        if (q.image) {
+                            innerHtml += '<img src="' + escapeAttr(q.image) + '" alt="' + escapeAttr(q.imageAlt || '') +
+                                '" style="max-width:100%;border-radius:8px;margin-top:15px;margin-bottom:15px;display:block;box-shadow:0 4px 10px rgba(31,25,90,0.08);">';
+                        }
+                        innerHtml += '<p style="font-size: 16px; line-height: 1.6; margin-bottom: 12px;">' + escapeHtml(q.text) + '</p>';
+                        if (q.code) {
+                            innerHtml += '<pre class="code-block"><code>' + escapeHtml(q.code) + '</code></pre>';
+                        }
+                        block.innerHTML = innerHtml;
+
+                        const answerWrap = document.createElement('div');
+                        answerWrap.className = 'answer-section';
+                        answerWrap.setAttribute('data-question-id', q.id);
+                        answerWrap.setAttribute('data-question-num', currentQNum);
+                        answerWrap.setAttribute('data-question-heading', cleanHeading);
+                        answerWrap.id = 'answer_wrap_' + q.id;
+                        answerWrap.style.marginBottom = '30px';
+                        answerWrap.addEventListener('mouseenter', function() {
+                            lastActiveQuestion = { id: q.id, num: currentQNum, heading: cleanHeading };
+                        });
+
+                        if (q.type === 'mcq' || (q.options && q.options.length > 0)) {
+                            const optionsGrid = document.createElement('div');
+                            optionsGrid.className = 'mcq-options';
+
+                            q.options.forEach(opt => {
+                                const optionLabel = document.createElement('label');
+                                optionLabel.className = 'mcq-option';
+
+                                const radio = document.createElement('input');
+                                radio.type = 'radio';
+                                radio.name = q.id;
+                                radio.value = opt.label;
+                                radio.className = 'mcq-radio';
+
+                                const badge = document.createElement('span');
+                                badge.className = 'mcq-badge';
+                                badge.innerText = opt.label.toUpperCase();
+
+                                const optText = document.createElement('span');
+                                optText.className = 'mcq-text';
+                                optText.innerText = opt.text;
+
+                                optionLabel.appendChild(radio);
+                                optionLabel.appendChild(badge);
+                                optionLabel.appendChild(optText);
+
+                                radio.addEventListener('focus', function() {
+                                    lastActiveQuestion = { id: q.id, num: currentQNum, heading: cleanHeading };
+                                });
+
+                                radio.addEventListener('change', function() {
+                                    optionsGrid.querySelectorAll('.mcq-option').forEach(l => l.classList.remove('selected'));
+                                    if (this.checked) {
+                                        optionLabel.classList.add('selected');
+                                        lastActiveQuestion = { id: q.id, num: currentQNum, heading: cleanHeading };
+                                        recordQuestionAttempt(q.id, currentQNum, this.value);
+                                    }
+                                    updateAttemptedCount();
+                                });
+
+                                optionsGrid.appendChild(optionLabel);
+                            });
+
+                            answerWrap.appendChild(optionsGrid);
+                        } else {
+                            const label = document.createElement('label');
+                            label.setAttribute('for', q.id);
+                            label.innerText = 'Question ' + currentQNum + ' Answer:';
+                            answerWrap.appendChild(label);
+
+                            const ta = document.createElement('textarea');
+                            ta.id = q.id;
+                            ta.name = q.name;
+                            ta.rows = q.rows || 3;
+                            ta.placeholder = q.placeholder || 'Type your answer here...';
+                            ta.setAttribute('onpaste', 'return false;');
+                            ta.setAttribute('oncopy', 'return false;');
+                            ta.setAttribute('oncontextmenu', 'return false;');
+                            ta.addEventListener('focus', function() {
+                                lastActiveQuestion = { id: q.id, num: currentQNum, heading: cleanHeading };
+                            });
+                            ta.addEventListener('input', function() {
+                                if (this.value.trim().length > 0) {
+                                    recordQuestionAttempt(q.id, currentQNum, this.value.trim().slice(0, 30));
+                                }
+                                updateAttemptedCount();
+                            });
+                            answerWrap.appendChild(ta);
+                        }
+
+                        const targetContainer = isCategorized ? targetSec : sections[sectionsConfig[0].id];
+                        targetContainer.appendChild(block);
+                        targetContainer.appendChild(answerWrap);
+                    });
+                });
+
+                // Register tab trigger navigation
+                const tabs = document.querySelectorAll('.nav-tab');
+                tabs.forEach(tab => {
+                    tab.addEventListener('click', function() {
+                        if (!isCategorized) return;
+                        if (placeholderEl) placeholderEl.style.display = 'none';
+
+                        tabs.forEach(t => t.classList.remove('active'));
+                        this.classList.add('active');
+
+                        const targetId = this.getAttribute('data-target');
+                        Object.keys(sections).forEach(k => {
+                            const secId = 'sec_' + k;
+                            const el = document.getElementById(secId);
+                            if (el) el.style.display = (secId === targetId) ? 'block' : 'none';
+                        });
+
+                        if (window.innerWidth <= 768) {
+                            questionsContainer.scrollIntoView({ behavior: 'smooth' });
+                        }
+                    });
+                });
+
+                // Initialize attempted count and hook event listeners
+                updateAttemptedCount();
+                questionsContainer.addEventListener('input', updateAttemptedCount);
+                questionsContainer.addEventListener('change', updateAttemptedCount);
+
+                checkSubmissionStatus(challenge);
+                startCountdown(challenge);
+            })
+            .catch(err => {
+                console.error(err);
+                document.getElementById('challengeTitle').innerText = "Failed to load test";
+                errorDiv.style.display = 'block';
+                form.style.display = 'none';
+            });
+
+        function escapeHtml(str) {
+            const d = document.createElement('div');
+            d.innerText = str == null ? '' : str;
+            return d.innerHTML;
+        }
+        function escapeAttr(str) {
+            return (str == null ? '' : str).replace(/"/g, '&quot;');
+        }
+
+        let timerInterval = null;
+
+        function startCountdown(challenge) {
+            if (timerInterval) clearInterval(timerInterval);
+
+            const timerEl = document.getElementById('countdownTimer');
+            if (!challenge) {
+                timerEl.style.display = 'none';
+                return;
+            }
+
+            let expiryDate = null;
+            if (challenge.expiresAt) {
+                expiryDate = new Date(challenge.expiresAt);
+            } else if (challenge.durationMinutes) {
+                const timerSessionKey = 'test_start_' + currentChallengeId;
+                const startTime = Date.now();
+                localStorage.setItem(timerSessionKey, startTime);
+                expiryDate = new Date(startTime + challenge.durationMinutes * 60 * 1000);
+            }
+
+            if (!expiryDate) {
+                timerEl.style.display = 'none';
+                return;
+            }
+
+            function updateTimer() {
+                const now = new Date();
+                const diff = expiryDate - now;
+
+                if (diff <= 0) {
+                    clearInterval(timerInterval);
+                    timerEl.innerText = "⏳ Time Expired";
+                    timerEl.style.color = "#d9534f";
+                    checkSubmissionStatus(challenge);
+                    return;
+                }
+
+                timerEl.style.display = 'block';
+
+                const hours = Math.floor(diff / (1000 * 60 * 60));
+                const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+                if (hours > 0) {
+                    timerEl.innerText = `⏳ Closes in: ${hours}h ${minutes}m ${seconds}s`;
+                } else {
+                    timerEl.innerText = `⏳ Closes in: ${minutes}m ${seconds}s`;
+                }
+                if (diff < 5 * 60 * 1000) {
+                    timerEl.style.color = "#e03131";
+                }
+            }
+
+            updateTimer();
+            timerInterval = setInterval(updateTimer, 1000);
+        }
+
+        function checkSubmissionStatus(challenge) {
+            // Check for expiration
+            if (challenge && challenge.expiresAt) {
+                const now = new Date();
+                const expiryDate = new Date(challenge.expiresAt);
+                if (now > expiryDate) {
+                    fsModal.style.display = 'none';
+                    disableForm(true);
+                    messageTitle.innerText = "Assessment Period Closed";
+                    messageTitle.style.color = "#d9534f";
+                    messageDiv.style.background = "#fdeeee";
+                    messageDiv.style.borderLeft = "6px solid #d9534f";
+                    messageText.innerHTML = "⚠️ This assessment has closed. Submissions are no longer accepted.";
+                    return;
+                }
+            }
+        }
+
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            isSubmitted = true;
+            if (timerInterval) clearInterval(timerInterval);
+
+            const email = emailInput.value.trim().toLowerCase();
+            const emailKey = 'submitted_' + currentChallengeId + '_email_' + email;
+            const submissionKey = 'submitted_' + currentChallengeId;
+
+            const actionUrl = form.getAttribute('action');
+            if (actionUrl === '' || actionUrl.includes('YOUR_FORMSPREE_ENDPOINT')) {
+                alert('Configuration Error: Submission endpoint is not set.');
+                isSubmitted = false;
+                return false;
+            }
+
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Submitting response...';
+
+            // Build consolidated answer string from all questions
+            let combinedAnswer = "";
+            const ch = window.currentChallenge;
+            const questions = (ch && ch.questions) || [];
+            const formData = new FormData(form);
+
+            questions.forEach((q, idx) => {
+                let answerText = "";
+                let cleanHeading = q.heading || ('Question ' + (idx + 1));
+                if (q.type === 'mcq' || (q.options && q.options.length > 0)) {
+                    const checked = form.querySelector(`input[name="${q.id}"]:checked`);
+                    if (checked) {
+                        const opt = (q.options || []).find(o => o.label === checked.value);
+                        answerText = `(${checked.value.toUpperCase()}) ${opt ? opt.text : ''}`;
+                        formData.set(q.id, checked.value);
+                    } else {
+                        answerText = "[Unanswered]";
+                        formData.set(q.id, "");
+                    }
+                } else {
+                    const ta = document.getElementById(q.id);
+                    answerText = ta ? ta.value.trim() : "";
+                    formData.set(q.id, answerText);
+                }
+                const timing = questionTimings[q.id];
+                const timingStr = timing
+                    ? `[First Attempt: ${timing.firstAttemptFormatted} (${timing.firstAttemptAtSec}s into test) | Changes: ${timing.changesCount}]`
+                    : `[Not Attempted]`;
+
+                combinedAnswer += `Question ${idx + 1}: ${cleanHeading}\nAnswer: ${answerText}\nAttempt Timing: ${timingStr}\n\n`;
+            });
+
+            // Append per-question attempt timeline
+            combinedAnswer += `--- PER-QUESTION ATTEMPT TIMELINE ---\n`;
+            questions.forEach((q, idx) => {
+                const t = questionTimings[q.id];
+                if (t) {
+                    combinedAnswer += `Q${idx + 1} (${q.id}): Attempted at ${t.firstAttemptFormatted} (${t.firstAttemptAtSec}s) | Answer: ${t.selectedAnswer} | Changes: ${t.changesCount}\n`;
+                } else {
+                    combinedAnswer += `Q${idx + 1} (${q.id}): Not Attempted\n`;
+                }
+            });
+
+            formData.set('answer', combinedAnswer.trim());
+
+            // Append telemetry indicators for anti-malpractice auditing
+            formData.set('telemetry_tab_switches', tabSwitches);
+            formData.set('telemetry_paste_attempts', pasteAttempts);
+            formData.set('telemetry_copy_attempts', copyAttempts);
+            formData.set('telemetry_ctrl_cmd_attempts', ctrlCmdAttempts);
+            formData.set('telemetry_text_selections', textSelectionAttempts);
+            formData.set('telemetry_fullscreen_exits', fullscreenExits);
+            formData.set('telemetry_question_times', JSON.stringify(questionTimings));
+            formData.set('telemetry_question_violations', JSON.stringify(questionViolations));
+            formData.set('telemetry_time_taken', Math.round((Date.now() - startTime) / 1000));
+            formData.set('telemetry_device', getDeviceType() + " (" + navigator.platform + ")");
+            formData.set('telemetry_events', JSON.stringify(telemetryEvents));
+
+            // Also attach proctoring audit to consolidated answer text
+            combinedAnswer += `\n--- SECURITY & PROCTORING AUDIT ---\n` +
+                `Fullscreen Exits: ${fullscreenExits} / 3\n` +
+                `Tab Switches / Focus Loss: ${tabSwitches} / 3\n` +
+                `Control / Command Keys Pressed: ${ctrlCmdAttempts}\n` +
+                `Text Selection Attempts: ${textSelectionAttempts}\n` +
+                `Copy Attempts Blocked: ${copyAttempts}\n` +
+                `Paste Attempts Blocked: ${pasteAttempts}\n` +
+                `Time Taken: ${Math.round((Date.now() - startTime) / 1000)}s\n` +
+                `Device: ${getDeviceType()} (${navigator.platform})\n`;
+
+            // Append Per-Question Forensics Breakdown
+            combinedAnswer += `\n--- PER-QUESTION VIOLATION FORENSICS (ACCIDENTAL VS MALPRACTICE) ---\n`;
+            const violatedList = Object.values(questionViolations);
+            if (violatedList.length === 0) {
+                combinedAnswer += `All Questions Clean: 0 proctoring violations recorded.\n`;
+            } else {
+                violatedList.forEach(qv => {
+                    combinedAnswer += `Question ${qv.questionNumber} (${qv.questionId}) - ${qv.questionHeading}:\n` +
+                        `  Risk Level: [${qv.riskLevel}] | Violations: ${qv.violationsCount} | Total Away: ${qv.totalAwaySec}s\n` +
+                        `  Verdict: ${qv.verdict}\n`;
+                    if (qv.violations && qv.violations.length > 0) {
+                        qv.violations.forEach(v => {
+                            combinedAnswer += `    • [${v.time}] ${v.summary}\n`;
+                        });
+                    }
+                    combinedAnswer += `\n`;
+                });
+            }
+
+            formData.set('answer', combinedAnswer.trim());
+
+            try {
+                localStorage.setItem('last_submission_audit_' + (currentChallengeId || 'default'), JSON.stringify({
+                    email: email,
+                    name: document.getElementById('name') ? document.getElementById('name').value : '',
+                    usn: document.getElementById('usn') ? document.getElementById('usn').value : '',
+                    submittedAt: new Date().toISOString(),
+                    fullscreenExits: fullscreenExits,
+                    tabSwitches: tabSwitches,
+                    copyAttempts: copyAttempts,
+                    pasteAttempts: pasteAttempts,
+                    ctrlCmdAttempts: ctrlCmdAttempts,
+                    textSelectionAttempts: textSelectionAttempts,
+                    questionTimings: questionTimings,
+                    questionViolations: questionViolations,
+                    timeTakenSec: Math.round((Date.now() - startTime) / 1000),
+                    events: telemetryEvents
+                }));
+            } catch (e) {}
+
+            // Route to /api/submit when hosted on web server (localhost, Render, or custom cloud host)
+            const isHostedServer = window.location.protocol.startsWith('http');
+            let targetUrl = isHostedServer ? '/api/submit' : actionUrl;
+
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 8000); // 8s safety timeout
+
+            let fetchOptions = {
+                method: 'POST',
+                signal: controller.signal
+            };
+
+            if (isHostedServer) {
+                const payload = {};
+                formData.forEach((val, key) => {
+                    payload[key] = val;
+                });
+                fetchOptions.body = JSON.stringify(payload);
+                fetchOptions.headers = {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                };
+            } else {
+                fetchOptions.body = formData;
+                fetchOptions.headers = {
+                    'Accept': 'application/json'
+                };
+            }
+
+            fetch(targetUrl, fetchOptions)
+            .then(async response => {
+                clearTimeout(timeoutId);
+                let data = null;
+                try {
+                    data = await response.json();
+                } catch(e) {}
+
+                if (response.ok) {
+                    localStorage.setItem(emailKey, 'true');
+                    localStorage.setItem(submissionKey, 'true');
+                    disableForm();
+                    messageTitle.innerText = "Submission Successful!";
+                    messageTitle.style.color = "#0ca678";
+                    if (data && data.score) {
+                        messageText.innerHTML = `Thank you! Your recruitment test response for <strong>${window.currentSetLabel || 'this set'}</strong> has been recorded.<br><strong>Score: ${data.score}</strong> | Submission #${data.submissionId || 1}`;
+                    } else {
+                        messageText.innerHTML = `Thank you! Your recruitment test response for <strong>${window.currentSetLabel || 'this set'}</strong> has been recorded successfully.`;
+                    }
+                } else {
+                    if (data && data.errors) {
+                        alert('Submission Error: ' + data.errors.map(err => err.message).join(', '));
+                    } else if (data && data.message) {
+                        alert('Submission Error: ' + data.message);
+                    } else {
+                        alert('Error: There was an issue submitting your form.');
+                    }
+                    isSubmitted = false;
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Submit Assessment';
+                }
+            })
+            .catch(error => {
+                clearTimeout(timeoutId);
+                console.warn('Network or timeout notice, saving local submission receipt...', error);
+                localStorage.setItem(emailKey, 'true');
+                localStorage.setItem(submissionKey, 'true');
+                disableForm();
+                messageTitle.innerText = "Submission Recorded!";
+                messageTitle.style.color = "#0ca678";
+                messageText.innerText = "Your test responses and telemetry audit have been securely recorded in your browser session.";
+            });
+        });
+
+        function disableForm(hideCompletely = false) {
+            if (hideCompletely) {
+                form.style.display = 'none';
+            } else {
+                const inputs = form.querySelectorAll('input, textarea');
+                inputs.forEach(input => input.disabled = true);
+                submitBtn.style.display = 'none';
+            }
+            messageDiv.style.display = 'block';
+        }
+
+        function updateAttemptedCount() {
+            const ch = window.currentChallenge;
+            const questions = (ch && ch.questions) || [];
+            let attempted = 0;
+            questions.forEach(q => {
+                if (q.type === 'mcq' || (q.options && q.options.length > 0)) {
+                    const checked = form.querySelector(`input[name="${q.id}"]:checked`);
+                    if (checked) attempted++;
+                } else {
+                    const ta = document.getElementById(q.id);
+                    if (ta && ta.value.trim() !== '') attempted++;
+                }
+            });
+            const attemptedEl = document.getElementById('attemptedCount');
+            const totalEl = document.getElementById('totalQuestionsCount');
+            if (attemptedEl) attemptedEl.innerText = attempted;
+            if (totalEl) totalEl.innerText = questions.length;
+        }
+    });
+</script>
+
+</body>
+</html>

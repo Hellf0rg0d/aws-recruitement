@@ -1,0 +1,2 @@
+# AWS Student Builder Group Assessment Platform
+# Python Standard Library only — No external pip dependencies required.
