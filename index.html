@@ -555,7 +555,10 @@
         const messageTitle = document.getElementById('alreadySubmittedTitle');
         const messageText = document.getElementById('alreadySubmittedText');
         const errorDiv = document.getElementById('challengeErrorMessage');
+        const nameInput = document.getElementById('name');
         const emailInput = document.getElementById('email');
+        const usnInput = document.getElementById('usn');
+        const branchSemInput = document.getElementById('branch_sem');
         const challengeIdInput = document.getElementById('challengeId');
         const questionsContainer = document.getElementById('questionsContainer');
 
@@ -1221,7 +1224,6 @@
                     }
                 }
                 if (document.activeElement && document.activeElement.id === 'submitBtn' && !e.shiftKey) {
-                    const nameInput = document.getElementById('name');
                     if (nameInput) {
                         e.preventDefault();
                         nameInput.focus();
@@ -1540,6 +1542,8 @@
         function renderChallengePaper(challenge, setLabel) {
             window.currentChallenge = challenge;
             window.currentSetLabel = setLabel;
+            console.log(`%c[VISS-PAPER] Rendering paper: ${setLabel} - "${challenge ? challenge.title : 'Unknown'}"`, "color: #4338ca; font-weight: bold;");
+            console.log(`[VISS-PAPER] Questions: ${(challenge.questions || []).length}, Sections: ${(challenge.sections || []).length}`);
 
             // Render active set indicators in UI
             const activeSetNameEl = document.getElementById('activeSetName');
@@ -1758,6 +1762,7 @@
         // ==============================================================================
 
         function loadAssessmentState() {
+            console.log("[VISS-STATE] Checking session status via /api/state...");
             fetch('/api/state', {
                 method: 'GET',
                 credentials: 'include',
@@ -1765,6 +1770,7 @@
             })
             .then(res => {
                 if (res.status === 401) {
+                    console.log("[VISS-STATE] No active session found (401 Unauthorized). Rendering unauthenticated entry view.");
                     showUnauthenticatedView();
                     return null;
                 }
@@ -1772,6 +1778,14 @@
             })
             .then(data => {
                 if (!data || !data.authenticated) return;
+                console.log("[VISS-STATE] Active authenticated session found:", {
+                    email: data.email,
+                    name: data.name,
+                    set_name: data.set_name,
+                    challenge_id: data.challenge_id,
+                    time_remaining: data.time_remaining,
+                    answers_count: Object.keys(data.answers || {}).length
+                });
 
                 currentAssessmentState = data;
                 isAssessmentActive = true;
@@ -1794,8 +1808,12 @@
                 if (startBtn) startBtn.style.display = 'none';
 
                 // Fetch challenges.json and render assigned set
+                console.log("[VISS-STATE] Fetching challenges.json for assigned set:", data.challenge_id);
                 fetch('challenges.json?t=' + Date.now())
-                    .then(res => res.json())
+                    .then(res => {
+                        if (!res.ok) throw new Error("HTTP " + res.status + " fetching challenges.json");
+                        return res.json();
+                    })
                     .then(cData => {
                         const challengeKey = data.challenge_id || 'set_a';
                         const challenge = (cData.challenges && cData.challenges[challengeKey]) || cData.challenges['set_a'];
@@ -1806,6 +1824,7 @@
 
                         // Check candidate submission status
                         if (data.status === 'submitted') {
+                            console.log("[VISS-STATE] Test already finalized & submitted.");
                             disableForm(false);
                             messageTitle.innerText = "Submission Received!";
                             messageTitle.style.color = "#0ca678";
@@ -1813,6 +1832,7 @@
                             messageDiv.style.display = 'block';
                             submitBtn.style.display = 'none';
                         } else if (data.status === 'time_expired' || data.time_remaining <= 0) {
+                            console.log("[VISS-STATE] Test time expired.");
                             disableForm(false);
                             messageTitle.innerText = "Assessment Period Expired";
                             messageTitle.style.color = "#d9534f";
@@ -1825,17 +1845,18 @@
                         }
                     })
                     .catch(err => {
-                        console.error("Could not load challenges:", err);
+                        console.error("[VISS-ERROR] Could not load challenges:", err);
                         document.getElementById('challengeTitle').innerText = "Failed to load test paper";
                     });
             })
             .catch(err => {
-                console.error("State fetch error:", err);
+                console.error("[VISS-ERROR] State fetch error:", err);
                 showUnauthenticatedView();
             });
         }
 
         function showUnauthenticatedView() {
+            console.log("[VISS-UI] Initializing unauthenticated entry view...");
             isAssessmentActive = false;
             nameInput.readOnly = false;
             emailInput.readOnly = false;
@@ -1853,13 +1874,24 @@
             if (ind) ind.style.display = 'none';
 
             // Load placeholder paper preview or instructions
+            console.log("[VISS-UI] Fetching challenges.json for paper preview...");
             fetch('challenges.json?t=' + Date.now())
-                .then(res => res.json())
-                .then(cData => {
-                    const ch = cData.challenges['set_a'];
-                    if (ch) renderChallengePaper(ch, 'SET A');
+                .then(res => {
+                    if (!res.ok) throw new Error("HTTP " + res.status + " while loading challenges.json");
+                    return res.json();
                 })
-                .catch(() => {});
+                .then(cData => {
+                    console.log("[VISS-UI] Available challenge sets:", Object.keys(cData.challenges || {}));
+                    const ch = cData.challenges && cData.challenges['set_a'];
+                    if (ch) {
+                        renderChallengePaper(ch, 'SET A');
+                    } else {
+                        console.warn("[VISS-UI] set_a not found in challenges configuration!");
+                    }
+                })
+                .catch(err => {
+                    console.error("[VISS-ERROR] Could not load preview challenges:", err);
+                });
         }
 
         // Bind Start / Resume Assessment Button
@@ -1884,6 +1916,7 @@
 
                 startAssessmentBtn.disabled = true;
                 startAssessmentBtn.innerText = "Authenticating...";
+                console.log("[VISS-LOGIN] Submitting candidate login:", { name, email, usn, branch });
 
                 fetch('/api/login', {
                     method: 'POST',
@@ -1900,10 +1933,11 @@
                     })
                 })
                 .then(res => {
-                    if (!res.ok) throw new Error("Could not initialize session.");
+                    if (!res.ok) throw new Error("Could not initialize session (HTTP " + res.status + ")");
                     return res.json();
                 })
                 .then(data => {
+                    console.log("[VISS-LOGIN] Authentication successful:", data);
                     startAssessmentBtn.disabled = false;
                     startAssessmentBtn.innerText = "🚀 Start / Resume Assessment";
 
