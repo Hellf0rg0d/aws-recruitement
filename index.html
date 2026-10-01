@@ -394,14 +394,14 @@
 
 <div id="fullscreenModal" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(26,26,46,0.98); z-index: 10000; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 40px; color: #ffffff; font-family: 'Segoe UI', sans-serif;">
     <div style="display: inline-flex; align-items: center; gap: 8px; background: rgba(224, 49, 49, 0.18); border: 2px solid #e03131; color: #ff8787; padding: 8px 22px; border-radius: 999px; font-size: 14px; font-weight: 800; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 22px; box-shadow: 0 4px 15px rgba(224,49,49,0.2);">
-        ⚠️ STRICT LIMIT: 3 FULLSCREEN EXITS &amp; 3 FOCUS LOSSES MAXIMUM
+        ⚠️ STRICT LIMIT: 5 FULLSCREEN EXITS &amp; 5 FOCUS LOSSES MAXIMUM
     </div>
     <h2 style="font-size: 30px; margin-bottom: 16px; font-weight: 800; color: #6a5cf5;">🔒 Secure Assessment Mode</h2>
     <p style="font-size: 16px; max-width: 620px; line-height: 1.7; margin-bottom: 24px; color: #cbd5e1;">
         To begin this assessment, you must enter Fullscreen Mode.<br>
         <span style="display: inline-block; background: rgba(255,255,255,0.08); padding: 12px 18px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.15); margin-top: 10px;">
-            🚨 <strong>Strict Limits: 3 Fullscreen Exits &amp; 3 Screen Focus Losses allowed.</strong><br>
-            On your <strong>3rd violation</strong> of either rule, your test will be permanently locked and responses frozen.
+            🚨 <strong>Strict Limits: 5 Fullscreen Exits &amp; 5 Screen Focus Losses allowed.</strong><br>
+            On your <strong>5th violation</strong> of either rule, your test will be permanently locked and responses frozen.
         </span>
     </p>
     <div id="fsResumeNotice" style="display: none; background: rgba(220, 38, 38, 0.25); border: 1.5px solid #ef4444; color: #fca5a5; padding: 10px 18px; border-radius: 8px; margin-bottom: 18px; font-size: 14.5px; font-weight: 700; max-width: 580px;"></div>
@@ -523,7 +523,7 @@
             <!-- Main Content Area -->
             <div class="exam-content">
                 <div class="assessment-section">
-                    <span class="anti-cheat-warning" style="margin-bottom: 25px;">⚠️ Strict Security Mode: Maximum 3 fullscreen exits and 3 screen focus losses permitted before auto-lockout. Copy-pasting is strictly prohibited and logged.</span>
+                    <span class="anti-cheat-warning" style="margin-bottom: 25px;">⚠️ Strict Security Mode: Maximum 5 fullscreen exits and 5 screen focus losses permitted before auto-lockout. Copy-pasting is strictly prohibited and logged.</span>
                     
                     <div id="selectSectionPlaceholder" style="background: #f8fafc; border: 2px dashed #cbd5e1; border-radius: 12px; padding: 45px 30px; text-align: center; color: #64748b; font-size: 16px; font-weight: 700; margin-top: 15px; margin-bottom: 20px; font-family: 'Segoe UI', sans-serif;">
                         👈 Please select an assessment section from the left sidebar to view and answer the questions.
@@ -941,7 +941,7 @@
                 question_timings: questionTimings
             };
 
-            if (fullscreenExits >= 3 || tabSwitches >= 3) {
+            if (fullscreenExits >= 5 || tabSwitches >= 5) {
                 lockAssessmentPermanently("proctoring_limit");
             }
 
