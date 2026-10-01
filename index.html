@@ -988,6 +988,9 @@
                 isPageUnloading = true;
             }
         }, true);
+
+        // Initial Startup Grace Period (4s) so browser tab setup / Brave shields don't fire false strikes
+        let proctoringArmedTime = Date.now() + 4000;
         let activeQuestionSyncTimer = null;
         let lastReportedActiveQid = null;
         function syncActiveQuestion() {
@@ -1059,7 +1062,7 @@
         let isFullscreenCurrentlyOut = false;
 
         function handleFullscreenChange() {
-            if (isPageUnloading || !isAssessmentActive || isSubmitted) return;
+            if (isPageUnloading || !isAssessmentActive || isSubmitted || Date.now() < proctoringArmedTime) return;
             if (fsModal.style.display === 'none') {
                 if (!isFullscreen()) {
                     if (isFullscreenCurrentlyOut) return;
@@ -1118,7 +1121,7 @@
         }, true);
 
         function triggerFocusLoss(reason) {
-            if (isPageUnloading || !isAssessmentActive || isSubmitted) return;
+            if (isPageUnloading || !isAssessmentActive || isSubmitted || Date.now() < proctoringArmedTime) return;
             if (fsModal.style.display !== 'none') return;
             
             // Critical Anti-Double-Counting Guard:
@@ -1165,7 +1168,7 @@
 
         // True tab switch or window minimized: document.visibilitychange
         document.addEventListener('visibilitychange', function() {
-            if (isPageUnloading || !isAssessmentActive || isSubmitted) return;
+            if (isPageUnloading || !isAssessmentActive || isSubmitted || Date.now() < proctoringArmedTime) return;
             if (document.hidden) {
                 triggerFocusLoss('visibility_hidden');
             } else {
@@ -1179,7 +1182,7 @@
 
         // Window blur with grace period & activeElement check
         window.addEventListener('blur', function() {
-            if (isPageUnloading || !isAssessmentActive || isSubmitted) return;
+            if (isPageUnloading || !isAssessmentActive || isSubmitted || Date.now() < proctoringArmedTime) return;
             // Ignore if user recently interacted with an input or pressed Tab
             if (Date.now() - lastTabPressTime < 2500 || Date.now() - lastInputInteractionTime < 2500) {
                 return;
@@ -1940,7 +1943,10 @@
                 copyAttempts = data.copy_attempts || 0;
                 pasteAttempts = data.paste_attempts || 0;
                 ctrlCmdAttempts = data.ctrl_cmd_attempts || 0;
-                textSelectionAttempts = data.text_selection_attempts || 0;
+                // Reset in-memory tracking flags and grant 4s grace period after state restore
+                isFocusCurrentlyLost = false;
+                isFullscreenCurrentlyOut = false;
+                proctoringArmedTime = Date.now() + 4000;
                 updateSecurityBadges();
 
                 // If candidate exceeded security limits, lock immediately (unless admin set status to unlocked)
