@@ -692,6 +692,7 @@
         }
 
         function handleFocusRestored() {
+            isFocusCurrentlyLost = false;
             if (focusLostStartTimestamp) {
                 const awayMs = Date.now() - focusLostStartTimestamp;
                 const awaySec = Math.round(awayMs / 1000);
@@ -1021,10 +1022,15 @@
         const fsEvents = ['fullscreenchange', 'webkitfullscreenchange', 'mozfullscreenchange', 'MSFullscreenChange'];
         fsEvents.forEach(evt => document.addEventListener(evt, handleFullscreenChange));
 
+        let isFullscreenCurrentlyOut = false;
+
         function handleFullscreenChange() {
             if (!isAssessmentActive || isSubmitted) return;
             if (fsModal.style.display === 'none') {
                 if (!isFullscreen()) {
+                    if (isFullscreenCurrentlyOut) return;
+                    isFullscreenCurrentlyOut = true;
+
                     fullscreenExits++;
                     fullscreenExitStartTimestamp = Date.now();
                     fullscreenExitActiveQuestion = getActiveQuestionContext();
@@ -1057,12 +1063,14 @@
                         warningOverlay.style.display = 'flex';
                     }
                 } else {
+                    isFullscreenCurrentlyOut = false;
                     handleFullscreenRestored();
                 }
             }
         }
 
         // Screen Focus Lost (Tab switch / window blur / minimizing) with 3-times limit
+        let isFocusCurrentlyLost = false;
         let lastFocusLossTime = 0;
         let blurCheckTimeout = null;
         let lastTabPressTime = 0;
@@ -1079,9 +1087,12 @@
             if (!isAssessmentActive || isSubmitted) return;
             if (fsModal.style.display !== 'none') return;
             
-            // Debounce within 1.5s to prevent dual-triggering from blur + visibilitychange on the same tab switch
+            // Critical Anti-Double-Counting Guard:
+            // If already away, do not count again until candidate returns to test tab!
+            if (isFocusCurrentlyLost) return;
+            isFocusCurrentlyLost = true;
+
             const now = Date.now();
-            if (now - lastFocusLossTime < 1500) return;
             lastFocusLossTime = now;
 
             tabSwitches++;
@@ -1893,8 +1904,9 @@
                 textSelectionAttempts = data.text_selection_attempts || 0;
                 updateSecurityBadges();
 
-                // If candidate exceeded security limits, lock immediately
-                if (data.status === 'locked' || fullscreenExits >= 3 || tabSwitches >= 3) {
+                // If candidate exceeded security limits, lock immediately (unless admin set status to unlocked)
+                const isOverLimit = (fullscreenExits >= 3 || tabSwitches >= 3);
+                if (data.status === 'locked' || (isOverLimit && data.status !== 'unlocked')) {
                     console.warn("[VISS-SECURITY] Assessment locked on load due to security violations.");
                     if (fsModal) fsModal.style.display = 'none';
                     disableForm(true);
@@ -1905,13 +1917,22 @@
                     if (submitBtn) submitBtn.style.display = 'none';
                     lockAssessmentPermanently("server_locked");
                     return;
+                } else {
+                    // Candidate is active or was unlocked by admin
+                    isSubmitted = false;
+                    isAssessmentActive = true;
+                    if (warningOverlay) warningOverlay.style.display = 'none';
                 }
 
                 // If candidate has existing warnings upon resume, show notice in fullscreen prompt
                 const modalNotice = document.getElementById('fsResumeNotice');
-                if (modalNotice && (fullscreenExits > 0 || tabSwitches > 0)) {
-                    modalNotice.style.display = 'block';
-                    modalNotice.innerHTML = `⚠️ Resumed Assessment: <strong>${fullscreenExits}/3 Exits</strong> and <strong>${tabSwitches}/3 Focus Losses</strong> already recorded.`;
+                if (modalNotice) {
+                    if (fullscreenExits > 0 || tabSwitches > 0) {
+                        modalNotice.style.display = 'block';
+                        modalNotice.innerHTML = `⚠️ Resumed Assessment: <strong>${fullscreenExits}/3 Exits</strong> and <strong>${tabSwitches}/3 Focus Losses</strong> already recorded.`;
+                    } else {
+                        modalNotice.style.display = 'none';
+                    }
                 }
 
                 // Lock Candidate Inputs with Verified Status
