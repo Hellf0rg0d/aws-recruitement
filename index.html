@@ -394,14 +394,14 @@
 
 <div id="fullscreenModal" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(26,26,46,0.98); z-index: 10000; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 40px; color: #ffffff; font-family: 'Segoe UI', sans-serif;">
     <div style="display: inline-flex; align-items: center; gap: 8px; background: rgba(224, 49, 49, 0.18); border: 2px solid #e03131; color: #ff8787; padding: 8px 22px; border-radius: 999px; font-size: 14px; font-weight: 800; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 22px; box-shadow: 0 4px 15px rgba(224,49,49,0.2);">
-        ⚠️ STRICT LIMIT: 5 FULLSCREEN EXITS &amp; 5 FOCUS LOSSES MAXIMUM
+        ⚠️ STRICT LIMIT: 3 FULLSCREEN EXITS &amp; 3 FOCUS LOSSES MAXIMUM
     </div>
     <h2 style="font-size: 30px; margin-bottom: 16px; font-weight: 800; color: #6a5cf5;">🔒 Secure Assessment Mode</h2>
     <p style="font-size: 16px; max-width: 620px; line-height: 1.7; margin-bottom: 24px; color: #cbd5e1;">
         To begin this assessment, you must enter Fullscreen Mode.<br>
         <span style="display: inline-block; background: rgba(255,255,255,0.08); padding: 12px 18px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.15); margin-top: 10px;">
-            🚨 <strong>Strict Limits: 5 Fullscreen Exits &amp; 5 Screen Focus Losses allowed.</strong><br>
-            On your <strong>5th violation</strong> of either rule, your test will be permanently locked and responses frozen.
+            🚨 <strong>Strict Limits: 3 Fullscreen Exits &amp; 3 Screen Focus Losses allowed.</strong><br>
+            On your <strong>3rd violation</strong> of either rule, your test will be permanently locked and responses frozen.
         </span>
     </p>
     <div id="fsResumeNotice" style="display: none; background: rgba(220, 38, 38, 0.25); border: 1.5px solid #ef4444; color: #fca5a5; padding: 10px 18px; border-radius: 8px; margin-bottom: 18px; font-size: 14.5px; font-weight: 700; max-width: 580px;"></div>
@@ -498,11 +498,11 @@
                 <div class="attempted-badge">Attempted: <span id="attemptedCount">0</span> / <span id="totalQuestionsCount">--</span></div>
                 <div style="background: #fef2f2; border: 1.5px solid #fecaca; color: #b91c1c; padding: 10px 14px; border-radius: 8px; font-size: 13.5px; font-weight: 700; text-align: center; margin-bottom: 10px; display: flex; align-items: center; justify-content: center; gap: 6px;">
                     <span>🔒 Screen Exits:</span>
-                    <strong id="exitBadgeCount" style="color: #dc2626; font-size: 15px;">0 / 5</strong>
+                    <strong id="exitBadgeCount" style="color: #dc2626; font-size: 15px;">0 / 3</strong>
                 </div>
                 <div style="background: #fff1f2; border: 1.5px solid #fecdd3; color: #be123c; padding: 10px 14px; border-radius: 8px; font-size: 13.5px; font-weight: 700; text-align: center; margin-bottom: 12px; display: flex; align-items: center; justify-content: center; gap: 6px;">
                     <span>👀 Focus Lost:</span>
-                    <strong id="focusLostBadgeCount" style="color: #e11d48; font-size: 15px;">0 / 5</strong>
+                    <strong id="focusLostBadgeCount" style="color: #e11d48; font-size: 15px;">0 / 3</strong>
                 </div>
                 <div id="copyBadgeContainer" style="display: none; background: #fff7ed; border: 1.5px solid #fed7aa; color: #c2410c; padding: 10px 14px; border-radius: 8px; font-size: 13.5px; font-weight: 700; text-align: center; margin-bottom: 10px; align-items: center; justify-content: center; gap: 6px;">
                     <span>📋 Copy Attempts:</span>
@@ -523,7 +523,7 @@
             <!-- Main Content Area -->
             <div class="exam-content">
                 <div class="assessment-section">
-                    <span class="anti-cheat-warning" style="margin-bottom: 25px;">⚠️ Strict Security Mode: Maximum 5 fullscreen exits and 5 screen focus losses permitted before auto-lockout. Copy-pasting is strictly prohibited and logged.</span>
+                    <span class="anti-cheat-warning" style="margin-bottom: 25px;">⚠️ Strict Security Mode: Maximum 3 fullscreen exits and 3 screen focus losses permitted before auto-lockout. Copy-pasting is strictly prohibited and logged.</span>
                     
                     <div id="selectSectionPlaceholder" style="background: #f8fafc; border: 2px dashed #cbd5e1; border-radius: 12px; padding: 45px 30px; text-align: center; color: #64748b; font-size: 16px; font-weight: 700; margin-top: 15px; margin-bottom: 20px; font-family: 'Segoe UI', sans-serif;">
                         👈 Please select an assessment section from the left sidebar to view and answer the questions.
@@ -874,10 +874,10 @@
 
         function updateSecurityBadges() {
             const exitBadge = document.getElementById('exitBadgeCount');
-            if (exitBadge) exitBadge.innerText = `${fullscreenExits} / 5`;
+            if (exitBadge) exitBadge.innerText = `${fullscreenExits} / 3`;
 
             const focusBadge = document.getElementById('focusLostBadgeCount');
-            if (focusBadge) focusBadge.innerText = `${tabSwitches} / 5`;
+            if (focusBadge) focusBadge.innerText = `${tabSwitches} / 3`;
 
             const copyBadge = document.getElementById('copyBadgeContainer');
             const copyCountEl = document.getElementById('copyBadgeCount');
@@ -914,7 +914,7 @@
                     <div style="font-size: 60px; margin-bottom: 16px;">🔒</div>
                     <h2 style="font-size: 34px; font-weight: 800; margin-bottom: 16px; color: white; font-family: 'Segoe UI', sans-serif;">Assessment Permanently Locked</h2>
                     <p style="font-size: 18px; max-width: 620px; margin-bottom: 24px; line-height: 1.6; color: #ffe3e3; font-family: 'Segoe UI', sans-serif;">
-                        You have exceeded the maximum allowed security limits (<strong>${fullscreenExits}/5 fullscreen exits</strong>, <strong>${tabSwitches}/5 focus losses</strong>).<br>
+                        You have exceeded the maximum allowed security limits (<strong>${fullscreenExits}/3 fullscreen exits</strong>, <strong>${tabSwitches}/3 focus losses</strong>).<br>
                         Your session is permanently locked on the server and your responses have been frozen.
                     </p>
                 `;
@@ -941,7 +941,7 @@
                 question_timings: questionTimings
             };
 
-            if (fullscreenExits >= 5 || tabSwitches >= 5) {
+            if (fullscreenExits >= 3 || tabSwitches >= 3) {
                 lockAssessmentPermanently("proctoring_limit");
             }
 
@@ -1096,7 +1096,7 @@
                     updateSecurityBadges();
                     syncSecurityViolation(true);
 
-                    if (fullscreenExits >= 5) {
+                    if (fullscreenExits >= 3) {
                         lockAssessmentPermanently("fullscreen_limit");
                     } else {
                         const tagEl = document.getElementById('securityWarningTag');
@@ -1107,13 +1107,13 @@
 
                         if (tagEl) tagEl.innerText = "⚠️ SECURITY VIOLATION: FULLSCREEN EXITED";
                         if (titleEl) titleEl.innerText = "Fullscreen Exit Warning";
-                        if (pillEl) pillEl.innerHTML = `Exit <span id="exitCurrentNumber">${fullscreenExits}</span> of 5 Used`;
+                        if (pillEl) pillEl.innerHTML = `Exit <span id="exitCurrentNumber">${fullscreenExits}</span> of 3 Used`;
                         if (resumeBtn) resumeBtn.innerText = "Return to Fullscreen";
 
-                        const remaining = 5 - fullscreenExits;
+                        const remaining = 3 - fullscreenExits;
                         if (warnText) {
                             warnText.innerHTML = `
-                                You exited fullscreen mode (<strong>${fullscreenExits}/5 exits used</strong>).<br>
+                                You exited fullscreen mode (<strong>${fullscreenExits}/3 exits used</strong>).<br>
                                 ⚠️ <strong>${remaining} exit${remaining === 1 ? '' : 's'} remaining</strong> before your assessment is permanently locked!
                             `;
                         }
@@ -1126,7 +1126,7 @@
             }
         }
 
-        // Screen Focus Lost (Tab switch / window blur / minimizing) with 5-times limit
+        // Screen Focus Lost (Tab switch / window blur / minimizing) with 3-times limit
         let isFocusCurrentlyLost = false;
         let blurCheckTimeout = null;
         let lastTabPressTime = 0;
@@ -1173,7 +1173,7 @@
             updateSecurityBadges();
             syncSecurityViolation(true);
 
-            if (tabSwitches >= 5) {
+            if (tabSwitches >= 3) {
                 lockAssessmentPermanently("focus_loss_limit");
             } else {
                 const tagEl = document.getElementById('securityWarningTag');
@@ -1184,18 +1184,18 @@
 
                 if (tagEl) tagEl.innerText = "⚠️ SECURITY VIOLATION: SCREEN FOCUS LOST";
                 if (titleEl) titleEl.innerText = "Screen Focus Lost Warning";
-                if (pillEl) pillEl.innerHTML = `Focus Lost <span id="exitCurrentNumber">${tabSwitches}</span> of 5 Used`;
+                if (pillEl) pillEl.innerHTML = `Focus Lost <span id="exitCurrentNumber">${tabSwitches}</span> of 3 Used`;
                 if (resumeBtn) resumeBtn.innerText = "Resume Assessment";
 
-                const remaining = 5 - tabSwitches;
+                const remaining = 3 - tabSwitches;
                 if (warnText) {
                     warnText.innerHTML = `
-                        You navigated away or switched tabs during the assessment (<strong>${tabSwitches}/5 focus losses used</strong>).<br>
+                        You navigated away or switched tabs during the assessment (<strong>${tabSwitches}/3 focus losses used</strong>).<br>
                         ⚠️ <strong>${remaining} warning${remaining === 1 ? '' : 's'} remaining</strong> before your assessment is permanently locked!
                     `;
                 }
                 warningOverlay.style.display = 'flex';
-                showToast(`⚠️ Security Warning: Screen focus lost (${tabSwitches}/5)! Violation logged.`);
+                showToast(`⚠️ Security Warning: Screen focus lost (${tabSwitches}/3)! Violation logged.`);
             }
         }
 
@@ -1692,10 +1692,10 @@
         }
 
         function computeCurrentRisk() {
-            if (copyAttempts > 0 || fullscreenExits >= 5 || tabSwitches >= 5) {
+            if (copyAttempts > 0 || fullscreenExits >= 3 || tabSwitches >= 3) {
                 return "HIGH / FLAGGED";
             }
-            if (tabSwitches > 2 || fullscreenExits > 2) {
+            if (tabSwitches > 1 || fullscreenExits > 1) {
                 return "MEDIUM / SUSPICIOUS";
             }
             return "LOW / CLEAN";
@@ -1987,14 +1987,14 @@
                 updateSecurityBadges();
 
                 // If candidate exceeded security limits, lock immediately (unless admin set status to unlocked)
-                const isOverLimit = (fullscreenExits >= 5 || tabSwitches >= 5);
+                const isOverLimit = (fullscreenExits >= 3 || tabSwitches >= 3);
                 if (data.status === 'locked' || (isOverLimit && data.status !== 'unlocked')) {
                     console.warn("[VISS-SECURITY] Assessment locked on load due to security violations.");
                     if (fsModal) fsModal.style.display = 'none';
                     disableForm(true);
                     messageTitle.innerText = "Assessment Permanently Locked";
                     messageTitle.style.color = "#d9534f";
-                    messageText.innerHTML = `Your test session is permanently locked due to security policy violations (<strong>${fullscreenExits}/5 fullscreen exits</strong>, <strong>${tabSwitches}/5 focus losses</strong>). Responses have been frozen.`;
+                    messageText.innerHTML = `Your test session is permanently locked due to security policy violations (<strong>${fullscreenExits}/3 fullscreen exits</strong>, <strong>${tabSwitches}/3 focus losses</strong>). Responses have been frozen.`;
                     messageDiv.style.display = 'block';
                     if (submitBtn) submitBtn.style.display = 'none';
                     lockAssessmentPermanently("server_locked");
@@ -2011,7 +2011,7 @@
                 if (modalNotice) {
                     if (fullscreenExits > 0 || tabSwitches > 0) {
                         modalNotice.style.display = 'block';
-                        modalNotice.innerHTML = `⚠️ Resumed Assessment: <strong>${fullscreenExits}/5 Exits</strong> and <strong>${tabSwitches}/5 Focus Losses</strong> already recorded.`;
+                        modalNotice.innerHTML = `⚠️ Resumed Assessment: <strong>${fullscreenExits}/3 Exits</strong> and <strong>${tabSwitches}/3 Focus Losses</strong> already recorded.`;
                     } else {
                         modalNotice.style.display = 'none';
                     }
