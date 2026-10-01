@@ -927,6 +927,7 @@
         function syncSecurityViolation(immediate = false) {
             if (!isAssessmentActive && !isSubmitted) return;
 
+            const currentQCtx = getActiveQuestionContext();
             const payload = {
                 fullscreen_exits: fullscreenExits,
                 tab_switches: tabSwitches,
@@ -935,6 +936,7 @@
                 ctrl_cmd_attempts: ctrlCmdAttempts,
                 text_selection_attempts: textSelectionAttempts,
                 integrity_risk: computeCurrentRisk(),
+                current_question: (currentQCtx && currentQCtx.id !== 'general') ? currentQCtx.id : 'q1',
                 question_violations: questionViolations,
                 question_timings: questionTimings
             };
@@ -975,9 +977,30 @@
         window.addEventListener('beforeunload', function() {
             syncSecurityViolation(true);
         });
-        window.addEventListener('pagehide', function() {
-            syncSecurityViolation(true);
-        });
+        let activeQuestionSyncTimer = null;
+        let lastReportedActiveQid = null;
+        function syncActiveQuestion() {
+            if (!isAssessmentActive || isSubmitted) return;
+            const ctx = getActiveQuestionContext();
+            if (!ctx || !ctx.id || ctx.id === 'general' || ctx.id === lastReportedActiveQid) return;
+            lastReportedActiveQid = ctx.id;
+            if (activeQuestionSyncTimer) clearTimeout(activeQuestionSyncTimer);
+            activeQuestionSyncTimer = setTimeout(() => {
+                fetch('/api/active-question', {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ question_id: ctx.id }),
+                    keepalive: true
+                }).catch(() => {});
+            }, 300);
+        }
+        window.addEventListener('scroll', syncActiveQuestion, { passive: true });
+        document.addEventListener('click', function(e) {
+            if (e.target && e.target.closest && e.target.closest('[data-question-id]')) {
+                syncActiveQuestion();
+            }
+        }, { passive: true });
 
         const fsModal = document.getElementById('fullscreenModal');
         const warningOverlay = document.getElementById('securityWarningOverlay');

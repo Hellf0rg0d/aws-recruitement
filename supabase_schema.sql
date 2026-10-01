@@ -44,6 +44,7 @@ CREATE TABLE IF NOT EXISTS candidates (
     question_timings JSONB DEFAULT '{}'::jsonb,
     question_violations JSONB DEFAULT '{}'::jsonb,
     events JSONB DEFAULT '[]'::jsonb,
+    current_question TEXT DEFAULT 'q1',
     submitted_at TIMESTAMPTZ
 );
 
@@ -79,24 +80,29 @@ CREATE POLICY "Allow all for answers" ON answers
     FOR ALL TO public USING (true) WITH CHECK (true);
 
 -- 5. Real-Time Classroom Proctoring & Evaluation View
-CREATE OR REPLACE VIEW classroom_proctoring_dashboard AS
+DROP VIEW IF EXISTS classroom_proctoring_dashboard CASCADE;
+CREATE VIEW classroom_proctoring_dashboard AS
 SELECT 
     c.id,
     c.email,
     c.name,
     c.usn,
+    c.branch_sem,
     c.set_name,
+    c.challenge_id,
     c.status,
     c.score || '/' || c.total_possible AS score,
     GREATEST(0, c.duration_seconds - EXTRACT(EPOCH FROM (NOW() - c.start_time))::INTEGER) AS seconds_remaining,
+    c.duration_seconds,
     c.integrity_risk,
     c.fullscreen_exits,
     c.tab_switches,
     c.copy_attempts,
+    c.current_question,
     c.start_time,
     c.submitted_at,
     COUNT(a.id) AS answered_count
 FROM candidates c
 LEFT JOIN answers a ON c.email = a.candidate_email
-GROUP BY c.id, c.email, c.name, c.usn, c.set_name, c.status, c.score, c.total_possible, c.duration_seconds, c.start_time, c.integrity_risk, c.fullscreen_exits, c.tab_switches, c.copy_attempts, c.submitted_at
-ORDER BY c.score DESC, c.start_time ASC;
+GROUP BY c.id, c.email, c.name, c.usn, c.branch_sem, c.set_name, c.challenge_id, c.status, c.score, c.total_possible, c.duration_seconds, c.start_time, c.integrity_risk, c.fullscreen_exits, c.tab_switches, c.copy_attempts, c.current_question, c.submitted_at
+ORDER BY c.status ASC, c.score DESC, c.start_time ASC;
