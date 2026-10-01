@@ -404,6 +404,7 @@
             On your <strong>3rd violation</strong> of either rule, your test will be permanently locked and responses frozen.
         </span>
     </p>
+    <div id="fsResumeNotice" style="display: none; background: rgba(220, 38, 38, 0.25); border: 1.5px solid #ef4444; color: #fca5a5; padding: 10px 18px; border-radius: 8px; margin-bottom: 18px; font-size: 14.5px; font-weight: 700; max-width: 580px;"></div>
     <button id="enterFullscreenBtn" style="max-width: 280px; background: linear-gradient(90deg, #6a5cf5, #3f8efc); font-weight: 800; border: none; padding: 16px 32px; border-radius: 8px; font-size: 16px; cursor: pointer; color: white; box-shadow: 0 10px 20px rgba(106,92,245,0.25);">
         I Understand — Enter Fullscreen
     </button>
@@ -871,6 +872,12 @@
         }
 
         function updateSecurityBadges() {
+            const exitBadge = document.getElementById('exitBadgeCount');
+            if (exitBadge) exitBadge.innerText = `${fullscreenExits} / 3`;
+
+            const focusBadge = document.getElementById('focusLostBadgeCount');
+            if (focusBadge) focusBadge.innerText = `${tabSwitches} / 3`;
+
             const copyBadge = document.getElementById('copyBadgeContainer');
             const copyCountEl = document.getElementById('copyBadgeCount');
             if (copyBadge && copyCountEl) {
@@ -892,7 +899,84 @@
                 if (ctrlCmdAttempts > 0) ctrlBadge.style.display = 'flex';
             }
         }
-        function updateCopyBadge() { updateSecurityBadges(); }
+        function updateCopyBadge() { 
+            updateSecurityBadges(); 
+            syncSecurityViolation(false);
+        }
+
+        function lockAssessmentPermanently(reason) {
+            isAssessmentActive = false;
+            isSubmitted = true;
+            if (fsModal) fsModal.style.display = 'none';
+            if (warningOverlay) {
+                warningOverlay.innerHTML = `
+                    <div style="font-size: 60px; margin-bottom: 16px;">🔒</div>
+                    <h2 style="font-size: 34px; font-weight: 800; margin-bottom: 16px; color: white; font-family: 'Segoe UI', sans-serif;">Assessment Permanently Locked</h2>
+                    <p style="font-size: 18px; max-width: 620px; margin-bottom: 24px; line-height: 1.6; color: #ffe3e3; font-family: 'Segoe UI', sans-serif;">
+                        You have exceeded the maximum allowed security limits (<strong>${fullscreenExits}/3 fullscreen exits</strong>, <strong>${tabSwitches}/3 focus losses</strong>).<br>
+                        Your session is permanently locked on the server and your responses have been frozen.
+                    </p>
+                `;
+                warningOverlay.style.display = 'flex';
+            }
+            disableForm(true);
+        }
+
+        let syncProctoringTimeout = null;
+        function syncSecurityViolation(immediate = false) {
+            if (!isAssessmentActive && !isSubmitted) return;
+
+            const payload = {
+                fullscreen_exits: fullscreenExits,
+                tab_switches: tabSwitches,
+                copy_attempts: copyAttempts,
+                paste_attempts: pasteAttempts,
+                ctrl_cmd_attempts: ctrlCmdAttempts,
+                text_selection_attempts: textSelectionAttempts,
+                integrity_risk: computeCurrentRisk(),
+                question_violations: questionViolations,
+                question_timings: questionTimings
+            };
+
+            if (fullscreenExits >= 3 || tabSwitches >= 3) {
+                lockAssessmentPermanently("proctoring_limit");
+            }
+
+            if (immediate && navigator.sendBeacon) {
+                try {
+                    const blob = new Blob([JSON.stringify(payload)], { type: 'application/json' });
+                    navigator.sendBeacon('/api/proctoring', blob);
+                    return;
+                } catch (e) {}
+            }
+
+            if (syncProctoringTimeout) clearTimeout(syncProctoringTimeout);
+            syncProctoringTimeout = setTimeout(() => {
+                fetch('/api/proctoring', {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload),
+                    keepalive: true
+                })
+                .then(async res => {
+                    if (res.ok) {
+                        const data = await res.json().catch(() => ({}));
+                        if (data.locked) {
+                            lockAssessmentPermanently("server_locked");
+                        }
+                    }
+                })
+                .catch(e => console.warn("[VISS-SECURITY] Proctoring sync notice:", e));
+            }, immediate ? 0 : 250);
+        }
+
+        window.addEventListener('beforeunload', function() {
+            syncSecurityViolation(true);
+        });
+        window.addEventListener('pagehide', function() {
+            syncSecurityViolation(true);
+        });
 
         const fsModal = document.getElementById('fullscreenModal');
         const warningOverlay = document.getElementById('securityWarningOverlay');
@@ -945,20 +1029,12 @@
                     fullscreenExitStartTimestamp = Date.now();
                     fullscreenExitActiveQuestion = getActiveQuestionContext();
                     logSecurityViolation('fullscreen_exit', { count: fullscreenExits }, null, fullscreenExitActiveQuestion);
-                    const exitBadge = document.getElementById('exitBadgeCount');
-                    if (exitBadge) exitBadge.innerText = `${fullscreenExits} / 3`;
+                    
+                    updateSecurityBadges();
+                    syncSecurityViolation(true);
 
                     if (fullscreenExits >= 3) {
-                        warningOverlay.innerHTML = `
-                            <div style="font-size: 60px; margin-bottom: 16px;">🔒</div>
-                            <h2 style="font-size: 34px; font-weight: 800; margin-bottom: 16px; color: white; font-family: 'Segoe UI', sans-serif;">Assessment Locked</h2>
-                            <p style="font-size: 18px; max-width: 620px; margin-bottom: 24px; line-height: 1.6; color: #ffe3e3; font-family: 'Segoe UI', sans-serif;">
-                                You have reached the maximum allowed limit of <strong>3 fullscreen exits (3/3)</strong>.<br>
-                                Your session is permanently locked and your responses have been frozen.
-                            </p>
-                        `;
-                        warningOverlay.style.display = 'flex';
-                        disableForm(true);
+                        lockAssessmentPermanently("fullscreen_limit");
                     } else {
                         const tagEl = document.getElementById('securityWarningTag');
                         const titleEl = document.getElementById('securityWarningTitle');
@@ -1013,20 +1089,11 @@
             focusLostActiveQuestion = getActiveQuestionContext();
             logSecurityViolation('focus_lost', { count: tabSwitches, reason: reason }, null, focusLostActiveQuestion);
 
-            const focusBadge = document.getElementById('focusLostBadgeCount');
-            if (focusBadge) focusBadge.innerText = `${tabSwitches} / 3`;
+            updateSecurityBadges();
+            syncSecurityViolation(true);
 
             if (tabSwitches >= 3) {
-                warningOverlay.innerHTML = `
-                    <div style="font-size: 60px; margin-bottom: 16px;">🔒</div>
-                    <h2 style="font-size: 34px; font-weight: 800; margin-bottom: 16px; color: white; font-family: 'Segoe UI', sans-serif;">Assessment Locked</h2>
-                    <p style="font-size: 18px; max-width: 620px; margin-bottom: 24px; line-height: 1.6; color: #ffe3e3; font-family: 'Segoe UI', sans-serif;">
-                        You have reached the maximum allowed limit of <strong>3 screen focus losses / tab switches (3/3)</strong>.<br>
-                        Your session is permanently locked and your responses have been frozen.
-                    </p>
-                `;
-                warningOverlay.style.display = 'flex';
-                disableForm(true);
+                lockAssessmentPermanently("focus_loss_limit");
             } else {
                 const tagEl = document.getElementById('securityWarningTag');
                 const titleEl = document.getElementById('securityWarningTitle');
@@ -1816,6 +1883,36 @@
 
                 currentAssessmentState = data;
                 isAssessmentActive = true;
+
+                // Server-Authoritative Proctoring Violations Restore
+                fullscreenExits = data.fullscreen_exits || 0;
+                tabSwitches = data.tab_switches || 0;
+                copyAttempts = data.copy_attempts || 0;
+                pasteAttempts = data.paste_attempts || 0;
+                ctrlCmdAttempts = data.ctrl_cmd_attempts || 0;
+                textSelectionAttempts = data.text_selection_attempts || 0;
+                updateSecurityBadges();
+
+                // If candidate exceeded security limits, lock immediately
+                if (data.status === 'locked' || fullscreenExits >= 3 || tabSwitches >= 3) {
+                    console.warn("[VISS-SECURITY] Assessment locked on load due to security violations.");
+                    if (fsModal) fsModal.style.display = 'none';
+                    disableForm(true);
+                    messageTitle.innerText = "Assessment Permanently Locked";
+                    messageTitle.style.color = "#d9534f";
+                    messageText.innerHTML = `Your test session is permanently locked due to security policy violations (<strong>${fullscreenExits}/3 fullscreen exits</strong>, <strong>${tabSwitches}/3 focus losses</strong>). Responses have been frozen.`;
+                    messageDiv.style.display = 'block';
+                    if (submitBtn) submitBtn.style.display = 'none';
+                    lockAssessmentPermanently("server_locked");
+                    return;
+                }
+
+                // If candidate has existing warnings upon resume, show notice in fullscreen prompt
+                const modalNotice = document.getElementById('fsResumeNotice');
+                if (modalNotice && (fullscreenExits > 0 || tabSwitches > 0)) {
+                    modalNotice.style.display = 'block';
+                    modalNotice.innerHTML = `⚠️ Resumed Assessment: <strong>${fullscreenExits}/3 Exits</strong> and <strong>${tabSwitches}/3 Focus Losses</strong> already recorded.`;
+                }
 
                 // Lock Candidate Inputs with Verified Status
                 nameInput.value = data.name || '';
