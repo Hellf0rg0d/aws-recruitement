@@ -416,7 +416,7 @@
     </div>
     <h2 id="securityWarningTitle" style="font-size: 32px; font-weight: 800; margin-bottom: 16px;">Fullscreen Exit Warning</h2>
     <div id="securityWarningPill" style="background: white; color: #d9534f; padding: 10px 24px; border-radius: 30px; font-size: 20px; font-weight: 800; margin-bottom: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.2);">
-        Exit <span id="exitCurrentNumber">1</span> of 3 Used
+        Exit <span id="exitCurrentNumber">1</span> of 5 Used
     </div>
     <p id="securityWarningText" style="font-size: 18px; max-width: 600px; margin-bottom: 30px; line-height: 1.6;">
         You have exited fullscreen mode. This violation has been logged.
@@ -498,11 +498,11 @@
                 <div class="attempted-badge">Attempted: <span id="attemptedCount">0</span> / <span id="totalQuestionsCount">--</span></div>
                 <div style="background: #fef2f2; border: 1.5px solid #fecaca; color: #b91c1c; padding: 10px 14px; border-radius: 8px; font-size: 13.5px; font-weight: 700; text-align: center; margin-bottom: 10px; display: flex; align-items: center; justify-content: center; gap: 6px;">
                     <span>🔒 Screen Exits:</span>
-                    <strong id="exitBadgeCount" style="color: #dc2626; font-size: 15px;">0 / 3</strong>
+                    <strong id="exitBadgeCount" style="color: #dc2626; font-size: 15px;">0 / 5</strong>
                 </div>
                 <div style="background: #fff1f2; border: 1.5px solid #fecdd3; color: #be123c; padding: 10px 14px; border-radius: 8px; font-size: 13.5px; font-weight: 700; text-align: center; margin-bottom: 12px; display: flex; align-items: center; justify-content: center; gap: 6px;">
                     <span>👀 Focus Lost:</span>
-                    <strong id="focusLostBadgeCount" style="color: #e11d48; font-size: 15px;">0 / 3</strong>
+                    <strong id="focusLostBadgeCount" style="color: #e11d48; font-size: 15px;">0 / 5</strong>
                 </div>
                 <div id="copyBadgeContainer" style="display: none; background: #fff7ed; border: 1.5px solid #fed7aa; color: #c2410c; padding: 10px 14px; border-radius: 8px; font-size: 13.5px; font-weight: 700; text-align: center; margin-bottom: 10px; align-items: center; justify-content: center; gap: 6px;">
                     <span>📋 Copy Attempts:</span>
@@ -874,10 +874,10 @@
 
         function updateSecurityBadges() {
             const exitBadge = document.getElementById('exitBadgeCount');
-            if (exitBadge) exitBadge.innerText = `${fullscreenExits} / 3`;
+            if (exitBadge) exitBadge.innerText = `${fullscreenExits} / 5`;
 
             const focusBadge = document.getElementById('focusLostBadgeCount');
-            if (focusBadge) focusBadge.innerText = `${tabSwitches} / 3`;
+            if (focusBadge) focusBadge.innerText = `${tabSwitches} / 5`;
 
             const copyBadge = document.getElementById('copyBadgeContainer');
             const copyCountEl = document.getElementById('copyBadgeCount');
@@ -914,7 +914,7 @@
                     <div style="font-size: 60px; margin-bottom: 16px;">🔒</div>
                     <h2 style="font-size: 34px; font-weight: 800; margin-bottom: 16px; color: white; font-family: 'Segoe UI', sans-serif;">Assessment Permanently Locked</h2>
                     <p style="font-size: 18px; max-width: 620px; margin-bottom: 24px; line-height: 1.6; color: #ffe3e3; font-family: 'Segoe UI', sans-serif;">
-                        You have exceeded the maximum allowed security limits (<strong>${fullscreenExits}/3 fullscreen exits</strong>, <strong>${tabSwitches}/3 focus losses</strong>).<br>
+                        You have exceeded the maximum allowed security limits (<strong>${fullscreenExits}/5 fullscreen exits</strong>, <strong>${tabSwitches}/5 focus losses</strong>).<br>
                         Your session is permanently locked on the server and your responses have been frozen.
                     </p>
                 `;
@@ -1009,7 +1009,7 @@
                 }).catch(() => {});
             }, 300);
         }
-        window.addEventListener('scroll', syncActiveQuestion, { passive: true });
+        // Removed scroll listener to prevent network flooding and database connection exhaustion under load
         document.addEventListener('click', function(e) {
             if (e.target && e.target.closest && e.target.closest('[data-question-id]')) {
                 syncActiveQuestion();
@@ -1046,11 +1046,21 @@
         enterFsBtn.addEventListener('click', function() {
             requestFullscreen();
             fsModal.style.display = 'none';
+            // Arm proctoring after 3.5s to let mobile system banners settle
+            proctoringArmedTime = Date.now() + 3500;
+            isFocusCurrentlyLost = false;
+            isFullscreenCurrentlyOut = false;
+            handleFullscreenRestored();
+            handleFocusRestored();
         });
 
         resumeFsBtn.addEventListener('click', function() {
             requestFullscreen();
             warningOverlay.style.display = 'none';
+            // Arm proctoring after 3.5s so mobile system banners ("You are in full screen") don't fire blur strikes
+            proctoringArmedTime = Date.now() + 3500;
+            isFocusCurrentlyLost = false;
+            isFullscreenCurrentlyOut = false;
             handleFullscreenRestored();
             handleFocusRestored();
         });
@@ -1060,6 +1070,8 @@
         fsEvents.forEach(evt => document.addEventListener(evt, handleFullscreenChange));
 
         let isFullscreenCurrentlyOut = false;
+        let lastFullscreenExitTimestamp = 0;
+        let lastFocusLossTimestamp = 0;
 
         function handleFullscreenChange() {
             if (isPageUnloading || !isAssessmentActive || isSubmitted || Date.now() < proctoringArmedTime) return;
@@ -1068,15 +1080,23 @@
                     if (isFullscreenCurrentlyOut) return;
                     isFullscreenCurrentlyOut = true;
 
-                    fullscreenExits++;
-                    fullscreenExitStartTimestamp = Date.now();
+                    const now = Date.now();
+                    // Co-occurrence guard: If focus loss occurred within 2500ms (mobile swipe gesture),
+                    // treat as one physical user gesture to prevent double-counting.
+                    const coOccurred = (now - lastFocusLossTimestamp < 2500);
+                    lastFullscreenExitTimestamp = now;
+
+                    if (!coOccurred) {
+                        fullscreenExits++;
+                    }
+                    fullscreenExitStartTimestamp = now;
                     fullscreenExitActiveQuestion = getActiveQuestionContext();
-                    logSecurityViolation('fullscreen_exit', { count: fullscreenExits }, null, fullscreenExitActiveQuestion);
+                    logSecurityViolation('fullscreen_exit', { count: fullscreenExits, coOccurred: coOccurred }, null, fullscreenExitActiveQuestion);
                     
                     updateSecurityBadges();
                     syncSecurityViolation(true);
 
-                    if (fullscreenExits >= 3) {
+                    if (fullscreenExits >= 5) {
                         lockAssessmentPermanently("fullscreen_limit");
                     } else {
                         const tagEl = document.getElementById('securityWarningTag');
@@ -1087,13 +1107,13 @@
 
                         if (tagEl) tagEl.innerText = "⚠️ SECURITY VIOLATION: FULLSCREEN EXITED";
                         if (titleEl) titleEl.innerText = "Fullscreen Exit Warning";
-                        if (pillEl) pillEl.innerHTML = `Exit <span id="exitCurrentNumber">${fullscreenExits}</span> of 3 Used`;
+                        if (pillEl) pillEl.innerHTML = `Exit <span id="exitCurrentNumber">${fullscreenExits}</span> of 5 Used`;
                         if (resumeBtn) resumeBtn.innerText = "Return to Fullscreen";
 
-                        const remaining = 3 - fullscreenExits;
+                        const remaining = 5 - fullscreenExits;
                         if (warnText) {
                             warnText.innerHTML = `
-                                You exited fullscreen mode (<strong>${fullscreenExits}/3 exits used</strong>).<br>
+                                You exited fullscreen mode (<strong>${fullscreenExits}/5 exits used</strong>).<br>
                                 ⚠️ <strong>${remaining} exit${remaining === 1 ? '' : 's'} remaining</strong> before your assessment is permanently locked!
                             `;
                         }
@@ -1106,9 +1126,8 @@
             }
         }
 
-        // Screen Focus Lost (Tab switch / window blur / minimizing) with 3-times limit
+        // Screen Focus Lost (Tab switch / window blur / minimizing) with 5-times limit
         let isFocusCurrentlyLost = false;
-        let lastFocusLossTime = 0;
         let blurCheckTimeout = null;
         let lastTabPressTime = 0;
         let lastInputInteractionTime = 0;
@@ -1125,22 +1144,36 @@
             if (fsModal.style.display !== 'none') return;
             
             // Critical Anti-Double-Counting Guard:
-            // If already away, do not count again until candidate returns to test tab!
+            // 1. If warning modal is currently showing, candidate is already flagged; ignore subsequent ripple events
+            if (warningOverlay && warningOverlay.style.display === 'flex') return;
+            // 2. If already away, do not count again until candidate returns to test tab!
             if (isFocusCurrentlyLost) return;
-            isFocusCurrentlyLost = true;
 
             const now = Date.now();
-            lastFocusLossTime = now;
+            // 3. Co-occurrence guard: If fullscreen was exited within the last 2500ms (mobile swipe gesture),
+            // suppress counting a duplicate tab-switch strike!
+            if (now - lastFullscreenExitTimestamp < 2500) {
+                console.log("[PROCTOR] Suppressed duplicate focus loss strike — co-occurred with fullscreen exit:", reason);
+                isFocusCurrentlyLost = true;
+                return;
+            }
+            // 4. Suppress rapid blur ripples within 2500ms
+            if (now - lastFocusLossTimestamp < 2500) {
+                return;
+            }
+
+            isFocusCurrentlyLost = true;
+            lastFocusLossTimestamp = now;
 
             tabSwitches++;
-            focusLostStartTimestamp = Date.now();
+            focusLostStartTimestamp = now;
             focusLostActiveQuestion = getActiveQuestionContext();
             logSecurityViolation('focus_lost', { count: tabSwitches, reason: reason }, null, focusLostActiveQuestion);
 
             updateSecurityBadges();
             syncSecurityViolation(true);
 
-            if (tabSwitches >= 3) {
+            if (tabSwitches >= 5) {
                 lockAssessmentPermanently("focus_loss_limit");
             } else {
                 const tagEl = document.getElementById('securityWarningTag');
@@ -1151,18 +1184,18 @@
 
                 if (tagEl) tagEl.innerText = "⚠️ SECURITY VIOLATION: SCREEN FOCUS LOST";
                 if (titleEl) titleEl.innerText = "Screen Focus Lost Warning";
-                if (pillEl) pillEl.innerHTML = `Focus Lost <span id="exitCurrentNumber">${tabSwitches}</span> of 3 Used`;
+                if (pillEl) pillEl.innerHTML = `Focus Lost <span id="exitCurrentNumber">${tabSwitches}</span> of 5 Used`;
                 if (resumeBtn) resumeBtn.innerText = "Resume Assessment";
 
-                const remaining = 3 - tabSwitches;
+                const remaining = 5 - tabSwitches;
                 if (warnText) {
                     warnText.innerHTML = `
-                        You navigated away or switched tabs during the assessment (<strong>${tabSwitches}/3 focus losses used</strong>).<br>
+                        You navigated away or switched tabs during the assessment (<strong>${tabSwitches}/5 focus losses used</strong>).<br>
                         ⚠️ <strong>${remaining} warning${remaining === 1 ? '' : 's'} remaining</strong> before your assessment is permanently locked!
                     `;
                 }
                 warningOverlay.style.display = 'flex';
-                showToast(`⚠️ Security Warning: Screen focus lost (${tabSwitches}/3)! Violation logged.`);
+                showToast(`⚠️ Security Warning: Screen focus lost (${tabSwitches}/5)! Violation logged.`);
             }
         }
 
@@ -1198,8 +1231,8 @@
             blurCheckTimeout = setTimeout(function() {
                 if (!isAssessmentActive || isSubmitted) return;
 
-                // 1. If document is not hidden and has focus, candidate is active on page
-                if (document.hasFocus() || !document.hidden) {
+                // 1. If document currently has focus, candidate is active on page
+                if (document.hasFocus()) {
                     return;
                 }
 
@@ -1651,14 +1684,14 @@
                     console.warn("Auto-save sync offline notice:", err);
                     updateSaveIndicator('offline');
                 });
-            }, 500);
+            }, 800);
         }
 
         function computeCurrentRisk() {
-            if (copyAttempts > 0 || fullscreenExits >= 3 || tabSwitches >= 3) {
+            if (copyAttempts > 0 || fullscreenExits >= 5 || tabSwitches >= 5) {
                 return "HIGH / FLAGGED";
             }
-            if (tabSwitches > 1 || fullscreenExits > 1) {
+            if (tabSwitches > 2 || fullscreenExits > 2) {
                 return "MEDIUM / SUSPICIOUS";
             }
             return "LOW / CLEAN";
@@ -1950,14 +1983,14 @@
                 updateSecurityBadges();
 
                 // If candidate exceeded security limits, lock immediately (unless admin set status to unlocked)
-                const isOverLimit = (fullscreenExits >= 3 || tabSwitches >= 3);
+                const isOverLimit = (fullscreenExits >= 5 || tabSwitches >= 5);
                 if (data.status === 'locked' || (isOverLimit && data.status !== 'unlocked')) {
                     console.warn("[VISS-SECURITY] Assessment locked on load due to security violations.");
                     if (fsModal) fsModal.style.display = 'none';
                     disableForm(true);
                     messageTitle.innerText = "Assessment Permanently Locked";
                     messageTitle.style.color = "#d9534f";
-                    messageText.innerHTML = `Your test session is permanently locked due to security policy violations (<strong>${fullscreenExits}/3 fullscreen exits</strong>, <strong>${tabSwitches}/3 focus losses</strong>). Responses have been frozen.`;
+                    messageText.innerHTML = `Your test session is permanently locked due to security policy violations (<strong>${fullscreenExits}/5 fullscreen exits</strong>, <strong>${tabSwitches}/5 focus losses</strong>). Responses have been frozen.`;
                     messageDiv.style.display = 'block';
                     if (submitBtn) submitBtn.style.display = 'none';
                     lockAssessmentPermanently("server_locked");
@@ -1974,7 +2007,7 @@
                 if (modalNotice) {
                     if (fullscreenExits > 0 || tabSwitches > 0) {
                         modalNotice.style.display = 'block';
-                        modalNotice.innerHTML = `⚠️ Resumed Assessment: <strong>${fullscreenExits}/3 Exits</strong> and <strong>${tabSwitches}/3 Focus Losses</strong> already recorded.`;
+                        modalNotice.innerHTML = `⚠️ Resumed Assessment: <strong>${fullscreenExits}/5 Exits</strong> and <strong>${tabSwitches}/5 Focus Losses</strong> already recorded.`;
                     } else {
                         modalNotice.style.display = 'none';
                     }
