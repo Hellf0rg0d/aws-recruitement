@@ -596,6 +596,35 @@
             return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
         }
 
+        // ---- Network helpers ----------------------------------------------------------------------
+        // Every request gets a hard timeout so a stalled connection can never hang the page or let
+        // requests pile up, and transient failures (network, 5xx, 429) are retried with jittered backoff.
+        const sleepMs = ms => new Promise(r => setTimeout(r, ms));
+        function fetchT(url, init = {}, ms = 12000) {
+            const ctrl = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+            const timer = ctrl ? setTimeout(() => ctrl.abort(), ms) : null;
+            return fetch(url, ctrl ? Object.assign({}, init, { signal: ctrl.signal }) : init)
+                .finally(() => { if (timer) clearTimeout(timer); });
+        }
+        const isRetryableStatus = status => status === 408 || status === 425 || status === 429 || status >= 500;
+        const backoffMs = attempt => Math.min(8000, 500 * Math.pow(2, attempt)) * (0.75 + Math.random() * 0.5);
+
+        // Telemetry growth caps: counters stay exact, but the raw event logs are bounded so a held key or a
+        // burst of violations can't make every later event (and every sync payload) progressively slower.
+        const MAX_TELEMETRY_EVENTS = 300;
+        const MAX_VIOLATIONS_PER_QUESTION = 30;
+        let telemetryPersistTimer = null;
+        function persistTelemetrySoon() {
+            if (telemetryPersistTimer) return;       // at most one localStorage write every 2s
+            telemetryPersistTimer = setTimeout(() => {
+                telemetryPersistTimer = null;
+                try {
+                    localStorage.setItem('telemetry_events_' + (currentChallengeId || 'default'), JSON.stringify(telemetryEvents));
+                    localStorage.setItem('telemetry_q_violations_' + (currentChallengeId || 'default'), JSON.stringify(questionViolations));
+                } catch (e) {}
+            }, 2000);
+        }
+
         function getActiveQuestionContext(targetEl = null) {
             // 1. If target element is provided, check closest [data-question-id] or radio/textarea
             if (targetEl) {
@@ -801,6 +830,7 @@
                 detail: detail
             };
             telemetryEvents.push(entry);
+            if (telemetryEvents.length > MAX_TELEMETRY_EVENTS) telemetryEvents.splice(0, telemetryEvents.length - MAX_TELEMETRY_EVENTS);
             console.warn(`[PROCTOR AUDIT] ${type.toUpperCase()} on Q${qCtx.num} (${qCtx.id}):`, entry);
 
             // Group proctoring violations per question (excluding routine question attempts)
@@ -862,14 +892,15 @@
                     summary: violationLabel,
                     detail: detail
                 });
+                // violationsCount (and every per-type counter above) stays exact; only the raw list is bounded
+                if (qRecord.violations.length > MAX_VIOLATIONS_PER_QUESTION) {
+                    qRecord.violations.splice(0, qRecord.violations.length - MAX_VIOLATIONS_PER_QUESTION);
+                }
 
                 evaluateQuestionIntegrity(qRecord);
             }
 
-            try {
-                localStorage.setItem('telemetry_events_' + (currentChallengeId || 'default'), JSON.stringify(telemetryEvents));
-                localStorage.setItem('telemetry_q_violations_' + (currentChallengeId || 'default'), JSON.stringify(questionViolations));
-            } catch (e) {}
+            persistTelemetrySoon();
         }
 
         function updateSecurityBadges() {
@@ -945,7 +976,7 @@
                 lockAssessmentPermanently("proctoring_limit");
             }
 
-            if (immediate && navigator.sendBeacon) {
+            if (immediate && isPageUnloading && navigator.sendBeacon) {
                 try {
                     const blob = new Blob([JSON.stringify(payload)], { type: 'application/json' });
                     navigator.sendBeacon('/api/proctoring', blob);
@@ -955,23 +986,40 @@
 
             if (syncProctoringTimeout) clearTimeout(syncProctoringTimeout);
             syncProctoringTimeout = setTimeout(() => {
-                fetch('/api/proctoring', {
+                fetchT('/api/proctoring', {
                     method: 'POST',
                     credentials: 'include',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload),
                     keepalive: true
-                })
+                }, 10000)
                 .then(async res => {
                     if (res.ok) {
+                        syncFailures = 0;
                         const data = await res.json().catch(() => ({}));
                         if (data.locked) {
                             lockAssessmentPermanently("server_locked");
                         }
+                    } else if (isRetryableStatus(res.status)) {
+                        scheduleSyncRetry();
                     }
                 })
-                .catch(e => console.warn("[VISS-SECURITY] Proctoring sync notice:", e));
+                .catch(e => {
+                    console.warn("[VISS-SECURITY] Proctoring sync notice:", e);
+                    scheduleSyncRetry();
+                });
             }, immediate ? 0 : 250);
+        }
+
+        // A strike the server never hears about is a strike the candidate can erase by reloading, so a failed
+        // sync is retried (rebuilding the payload from the *current* counters) until the server acknowledges it.
+        let syncFailures = 0;
+        let syncRetryTimer = null;
+        function scheduleSyncRetry() {
+            if (syncFailures >= 20) return;
+            syncFailures++;
+            if (syncRetryTimer) clearTimeout(syncRetryTimer);
+            syncRetryTimer = setTimeout(() => { syncRetryTimer = null; syncSecurityViolation(false); }, backoffMs(syncFailures));
         }
 
         // Page Unload / Refresh Protection
@@ -1030,39 +1078,58 @@
 
         function requestFullscreen() {
             const docEl = document.documentElement;
-            if (docEl.requestFullscreen) docEl.requestFullscreen();
-            else if (docEl.mozRequestFullScreen) docEl.mozRequestFullScreen();
-            else if (docEl.webkitRequestFullscreen) docEl.webkitRequestFullscreen();
-            else if (docEl.msRequestFullscreen) docEl.msRequestFullscreen();
+            if (docEl.requestFullscreen) return docEl.requestFullscreen();
+            else if (docEl.mozRequestFullScreen) return docEl.mozRequestFullScreen();
+            else if (docEl.webkitRequestFullscreen) return docEl.webkitRequestFullscreen();
+            else if (docEl.msRequestFullscreen) return docEl.msRequestFullscreen();
+            return Promise.resolve();
         }
 
         function isFullscreen() {
-            return document.fullscreenElement || 
-                   document.webkitFullscreenElement || 
-                   document.mozFullScreenElement || 
-                   document.msFullscreenElement;
+            return Boolean(document.fullscreenElement || 
+                           document.webkitFullscreenElement || 
+                           document.mozFullScreenElement || 
+                           document.msFullscreenElement);
         }
 
-        enterFsBtn.addEventListener('click', function() {
-            requestFullscreen();
-            fsModal.style.display = 'none';
-            // Arm proctoring after 3.5s to let mobile system banners settle
-            proctoringArmedTime = Date.now() + 3500;
-            isFocusCurrentlyLost = false;
-            isFullscreenCurrentlyOut = false;
-            handleFullscreenRestored();
-            handleFocusRestored();
+        enterFsBtn.addEventListener('click', async function() {
+            try {
+                await requestFullscreen();
+            } catch (err) {
+                console.warn("[VISS-SECURITY] Fullscreen request error:", err);
+            }
+            setTimeout(() => {
+                if (isFullscreen()) {
+                    fsModal.style.display = 'none';
+                    proctoringArmedTime = Date.now() + 2000;
+                    isFocusCurrentlyLost = false;
+                    isFullscreenCurrentlyOut = false;
+                    handleFullscreenRestored();
+                    handleFocusRestored();
+                } else {
+                    showToast("⚠️ Fullscreen mode is required to begin the assessment.");
+                }
+            }, 100);
         });
 
-        resumeFsBtn.addEventListener('click', function() {
-            requestFullscreen();
-            warningOverlay.style.display = 'none';
-            // Arm proctoring after 3.5s so mobile system banners ("You are in full screen") don't fire blur strikes
-            proctoringArmedTime = Date.now() + 3500;
-            isFocusCurrentlyLost = false;
-            isFullscreenCurrentlyOut = false;
-            handleFullscreenRestored();
-            handleFocusRestored();
+        resumeFsBtn.addEventListener('click', async function() {
+            try {
+                await requestFullscreen();
+            } catch (err) {
+                console.warn("[VISS-SECURITY] Fullscreen request error:", err);
+            }
+            setTimeout(() => {
+                if (isFullscreen()) {
+                    warningOverlay.style.display = 'none';
+                    proctoringArmedTime = Date.now() + 2000;
+                    isFocusCurrentlyLost = false;
+                    isFullscreenCurrentlyOut = false;
+                    handleFullscreenRestored();
+                    handleFocusRestored();
+                } else {
+                    showToast("⚠️ Fullscreen mode is required to resume the assessment.");
+                }
+            }, 100);
         });
 
         // Fullscreen Change Listeners
@@ -1074,24 +1141,23 @@
         let lastFocusLossTimestamp = 0;
 
         function handleFullscreenChange() {
-            if (isPageUnloading || !isAssessmentActive || isSubmitted || Date.now() < proctoringArmedTime) return;
+            if (isPageUnloading || !isAssessmentActive || isSubmitted) return;
             if (fsModal.style.display === 'none') {
                 if (!isFullscreen()) {
-                    if (isFullscreenCurrentlyOut) return;
+                    if (isFullscreenCurrentlyOut) {
+                        if (warningOverlay && warningOverlay.style.display !== 'flex') {
+                            warningOverlay.style.display = 'flex';
+                        }
+                        return;
+                    }
                     isFullscreenCurrentlyOut = true;
 
                     const now = Date.now();
-                    // Co-occurrence guard: If focus loss occurred within 2500ms (mobile swipe gesture),
-                    // treat as one physical user gesture to prevent double-counting.
-                    const coOccurred = (now - lastFocusLossTimestamp < 2500);
                     lastFullscreenExitTimestamp = now;
-
-                    if (!coOccurred) {
-                        fullscreenExits++;
-                    }
+                    fullscreenExits++;
                     fullscreenExitStartTimestamp = now;
                     fullscreenExitActiveQuestion = getActiveQuestionContext();
-                    logSecurityViolation('fullscreen_exit', { count: fullscreenExits, coOccurred: coOccurred }, null, fullscreenExitActiveQuestion);
+                    logSecurityViolation('fullscreen_exit', { count: fullscreenExits }, null, fullscreenExitActiveQuestion);
                     
                     updateSecurityBadges();
                     syncSecurityViolation(true);
@@ -1121,10 +1187,25 @@
                     }
                 } else {
                     isFullscreenCurrentlyOut = false;
+                    if (warningOverlay && warningOverlay.style.display !== 'none') {
+                        warningOverlay.style.display = 'none';
+                    }
                     handleFullscreenRestored();
                 }
             }
         }
+
+        // Continuous Fullscreen Enforcement Watchdog
+        // Checks every 500ms to guarantee candidate cannot take test in windowed mode
+        setInterval(() => {
+            if (isPageUnloading || !isAssessmentActive || isSubmitted) return;
+            if (fsModal && fsModal.style.display !== 'none') return;
+            if (!isFullscreen()) {
+                if (!isFullscreenCurrentlyOut || (warningOverlay && warningOverlay.style.display !== 'flex')) {
+                    handleFullscreenChange();
+                }
+            }
+        }, 500);
 
         // Screen Focus Lost (Tab switch / window blur / minimizing) with 3-times limit
         let isFocusCurrentlyLost = false;
@@ -1241,16 +1322,16 @@
                     return;
                 }
 
-                // 3. If candidate is currently focused on any input/element inside the page
+                // 3. Whitelist legitimate internal focus switches on form controls
                 const active = document.activeElement;
                 if (active && (
                     active.tagName === 'INPUT' ||
                     active.tagName === 'TEXTAREA' ||
-                    active.tagName === 'BUTTON' ||
-                    active.tagName === 'SELECT' ||
-                    (active.closest && (active.closest('#assessmentForm') || active.closest('.container')))
+                    active.tagName === 'SELECT'
                 )) {
-                    return;
+                    if (document.hasFocus()) {
+                        return;
+                    }
                 }
 
                 // 4. Genuine window focus loss to another application
@@ -1410,6 +1491,17 @@
             const key = (e.key || '').toLowerCase();
             const isModifier = e.ctrlKey || e.metaKey;
 
+            // Key auto-repeat (a held key fires ~30 keydowns/s): the first keydown was already judged, logged and
+            // toasted. Repeats must still be *blocked*, but never re-counted/re-logged/re-toasted - otherwise
+            // one held Ctrl floods the event log, the DOM and every sync payload.
+            if (e.repeat) {
+                const blockedCombo = (isModifier && ['a', 'c', 'x', 'v', 'f', 'p', 's', 'u'].includes(key)) ||
+                                     (isModifier && e.shiftKey && ['i', 'j', 'c'].includes(key)) || key === 'f12';
+                const selectAllInField = key === 'a' && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA');
+                if (blockedCombo && !selectAllInField) e.preventDefault();
+                return;
+            }
+
             // Log standalone Control or Command (Meta) key press
             if (e.key === 'Control' || e.key === 'Meta') {
                 ctrlCmdAttempts++;
@@ -1521,10 +1613,16 @@
             return report;
         };
 
+        // At most MAX_TOASTS on screen; an identical message just extends the one already showing.
+        const MAX_TOASTS = 3;
+        const activeToasts = [];
         function showToast(message) {
+            const existing = activeToasts.find(t => t.msg === message);
+            if (existing) { existing.extend(); return; }
+            while (activeToasts.length >= MAX_TOASTS) activeToasts.shift().dismiss();
             const toast = document.createElement('div');
             toast.style.position = 'fixed';
-            toast.style.top = '30px';
+            toast.style.top = (30 + activeToasts.length * 64) + 'px';
             toast.style.left = '50%';
             toast.style.transform = 'translateX(-50%)';
             toast.style.background = '#d9534f';
@@ -1538,11 +1636,23 @@
             toast.style.border = '1px solid rgba(255,255,255,0.2)';
             toast.innerText = message;
             document.body.appendChild(toast);
-            setTimeout(() => {
-                toast.style.transition = 'opacity 0.5s ease';
-                toast.style.opacity = '0';
-                setTimeout(() => toast.remove(), 500);
-            }, 3000);
+            const entry = { msg: message, timer: null };
+            entry.dismiss = () => {
+                clearTimeout(entry.timer);
+                const i = activeToasts.indexOf(entry);
+                if (i >= 0) activeToasts.splice(i, 1);
+                toast.remove();
+            };
+            entry.extend = () => {
+                clearTimeout(entry.timer);
+                entry.timer = setTimeout(() => {
+                    toast.style.transition = 'opacity 0.5s ease';
+                    toast.style.opacity = '0';
+                    entry.timer = setTimeout(entry.dismiss, 500);
+                }, 3000);
+            };
+            activeToasts.push(entry);
+            entry.extend();
         }
 
         function escapeHtml(str) {
@@ -1632,63 +1742,118 @@
             }
         }
 
+        // ---- Auto-save: ordered per question, flushable, retried --------------------------------------
+        // saveQueue[qid] = { pending, inflight, debounce, attempts }
+        //   * pending  - the latest value the candidate chose that has not been sent yet (newest always wins)
+        //   * inflight - at most ONE request per question is on the wire, so an older answer can never
+        //                overtake and overwrite a newer one on the server
+        // A failed save (network / 5xx) is retried with backoff; flushPendingSaves() lets submit/expiry wait
+        // for every outstanding answer instead of grading while the last click is still in a debounce timer.
+        const saveQueue = {};
+        const inflightSaves = new Set();
+
         function triggerAutoSave(questionId, selectedOption) {
             if (!isAssessmentActive) return;
             updateSaveIndicator('saving');
 
-            if (autoSaveDebounceTimers[questionId]) {
-                clearTimeout(autoSaveDebounceTimers[questionId]);
-            }
+            const s = saveQueue[questionId] || (saveQueue[questionId] = { pending: undefined, inflight: false, debounce: null, attempts: 0 });
+            s.pending = selectedOption;
+            if (s.debounce) clearTimeout(s.debounce);
+            s.debounce = setTimeout(() => { s.debounce = null; pumpSave(questionId); }, 800);   // debounce typing/rapid clicks
+        }
 
-            // Debounced by 500ms
-            autoSaveDebounceTimers[questionId] = setTimeout(() => {
-                fetch('/api/save', {
-                    method: 'POST',
-                    credentials: 'include',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        question_id: questionId,
-                        selected_option: selectedOption,
-                        telemetry: {
-                            fullscreen_exits: fullscreenExits,
-                            tab_switches: tabSwitches,
-                            copy_attempts: copyAttempts,
-                            paste_attempts: pasteAttempts,
-                            ctrl_cmd_attempts: ctrlCmdAttempts,
-                            text_selection_attempts: textSelectionAttempts,
-                            integrity_risk: computeCurrentRisk()
-                        }
-                    })
-                })
-                .then(async res => {
-                    if (res.status === 403) {
-                        const err = await res.json().catch(() => ({}));
-                        alert(err.detail || "Assessment session is locked or already submitted.");
-                        disableForm(true);
-                        return;
-                    }
-                    if (res.ok) {
-                        const resData = await res.json().catch(() => ({}));
-                        if (resData.status === 'submitted' || resData.auto_submitted) {
-                            finishAssessment(true);
-                            return;
-                        }
-                        if (resData.time_remaining !== undefined) {
-                            syncServerCountdown(resData.time_remaining);
-                        }
-                        updateSaveIndicator('saved');
-                    } else {
-                        updateSaveIndicator('error');
-                    }
-                })
-                .catch(err => {
-                    console.warn("Auto-save sync offline notice:", err);
+        function pumpSave(questionId) {
+            const s = saveQueue[questionId];
+            if (!s || s.inflight || s.pending === undefined) return;
+            const value = s.pending;
+            s.pending = undefined;
+            s.inflight = true;
+            const p = sendSave(questionId, value).then(outcome => {
+                s.inflight = false;
+                if (outcome === 'retry') {
+                    if (s.pending === undefined) s.pending = value;       // keep the value unless a newer one arrived
+                    s.attempts++;
                     updateSaveIndicator('offline');
-                });
-            }, 800);
+                    if (!s.debounce) s.debounce = setTimeout(() => { s.debounce = null; pumpSave(questionId); }, backoffMs(Math.min(s.attempts, 6)));
+                } else {
+                    s.attempts = 0;
+                    if (outcome === 'ok' && s.pending !== undefined) pumpSave(questionId);   // newer answer arrived meanwhile
+                }
+            }).finally(() => inflightSaves.delete(p));
+            inflightSaves.add(p);
+        }
+
+        // Resolves 'ok' | 'retry' | 'dead' (locked / submitted / not retryable)
+        function sendSave(questionId, selectedOption) {
+            return fetchT('/api/save', {
+                method: 'POST',
+                credentials: 'include',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({
+                    question_id: questionId,
+                    selected_option: selectedOption,
+                    telemetry: {
+                        fullscreen_exits: fullscreenExits,
+                        tab_switches: tabSwitches,
+                        copy_attempts: copyAttempts,
+                        paste_attempts: pasteAttempts,
+                        ctrl_cmd_attempts: ctrlCmdAttempts,
+                        text_selection_attempts: textSelectionAttempts,
+                        integrity_risk: computeCurrentRisk()
+                    }
+                })
+            }, 12000)
+            .then(async res => {
+                if (res.status === 403) {
+                    const err = await res.json().catch(() => ({}));
+                    if (!isFinishing) alert(err.detail || "Assessment session is locked or already submitted.");
+                    disableForm(true);
+                    return 'dead';
+                }
+                if (res.ok) {
+                    const resData = await res.json().catch(() => ({}));
+                    if (resData.locked) {                       // server locked us (e.g. a strike this tab hasn't seen)
+                        lockAssessmentPermanently("server_locked");
+                        return 'dead';
+                    }
+                    if (resData.status === 'submitted' || resData.auto_submitted) {
+                        finishAssessment(true);
+                        return 'dead';
+                    }
+                    if (resData.time_remaining !== undefined) {
+                        syncServerCountdown(resData.time_remaining);
+                    }
+                    updateSaveIndicator('saved');
+                    return 'ok';
+                }
+                if (isRetryableStatus(res.status)) return 'retry';
+                updateSaveIndicator('error');
+                return 'dead';
+            })
+            .catch(err => {
+                console.warn("Auto-save sync offline notice:", err);
+                return 'retry';
+            });
+        }
+
+        // Send every outstanding answer now and wait (bounded) until none is pending or in flight.
+        async function flushPendingSaves(deadlineMs = 8000) {
+            const end = Date.now() + deadlineMs;
+            while (Date.now() < end) {
+                let busy = false;
+                for (const qid of Object.keys(saveQueue)) {
+                    const s = saveQueue[qid];
+                    if (s.debounce) { clearTimeout(s.debounce); s.debounce = null; }
+                    if (s.pending !== undefined && !s.inflight) { busy = true; pumpSave(qid); }
+                    else if (s.inflight) busy = true;
+                }
+                if (!busy) return true;
+                await Promise.race([Promise.allSettled([...inflightSaves]), sleepMs(250)]);
+            }
+            return false;
         }
 
         function computeCurrentRisk() {
@@ -1945,22 +2110,50 @@
         // Session & State Synchronization (Classroom Resume)
         // ==============================================================================
 
-        function loadAssessmentState() {
+        // loadAssessmentState() runs on page load and again after login; only the most recent call may apply
+        // its response (a slow older response must not overwrite fresher state or re-render the paper).
+        let stateLoadSeq = 0;
+        function fetchJsonWithRetry(url, tries = 4) {
+            return fetchT(url, {}, 12000)
+                .then(res => { if (!res.ok) throw new Error("HTTP " + res.status + " fetching " + url); return res.json(); })
+                .catch(err => {
+                    if (tries <= 1) throw err;
+                    return sleepMs(backoffMs(4 - tries)).then(() => fetchJsonWithRetry(url, tries - 1));
+                });
+        }
+
+        function loadAssessmentState(attempt = 0) {
             console.log("[VISS-STATE] Checking session status via /api/state...");
-            fetch('/api/state', {
+            const seq = ++stateLoadSeq;
+            fetchT('/api/state', {
                 method: 'GET',
                 credentials: 'include',
                 headers: { 'Accept': 'application/json' }
-            })
+            }, 12000)
             .then(res => {
+                if (seq !== stateLoadSeq) return null;
                 if (res.status === 401) {
                     console.log("[VISS-STATE] No active session found (401 Unauthorized). Rendering unauthenticated entry view.");
                     showUnauthenticatedView();
                     return null;
                 }
+                if (isRetryableStatus(res.status)) throw new Error("HTTP " + res.status);   // server busy/restarting
                 return res.json();
             })
+            .catch(netErr => {
+                // Network error / timeout / 5xx: the candidate did NOT lose their session - keep retrying quietly
+                // instead of dropping them onto the login screen.
+                if (seq !== stateLoadSeq) return null;
+                if (attempt < 8) {
+                    const noticeEl = document.getElementById('loginStatusNotice');
+                    if (noticeEl) noticeEl.innerHTML = "⚠️ Reconnecting to the server… your answers are safe.";
+                    setTimeout(() => { if (seq === stateLoadSeq) loadAssessmentState(attempt + 1); }, backoffMs(attempt));
+                    return null;
+                }
+                throw netErr;
+            })
             .then(data => {
+                if (seq !== stateLoadSeq) return;
                 if (!data || !data.authenticated) return;
                 console.log("[VISS-STATE] Active authenticated session found:", {
                     email: data.email,
@@ -2004,6 +2197,10 @@
                     isSubmitted = false;
                     isAssessmentActive = true;
                     if (warningOverlay) warningOverlay.style.display = 'none';
+                    if (enterFsBtn) enterFsBtn.innerText = "Enter Fullscreen Mode & Resume Assessment";
+                    if (isFullscreen() && fsModal) {
+                        fsModal.style.display = 'none';
+                    }
                 }
 
                 // If candidate has existing warnings upon resume, show notice in fullscreen prompt
@@ -2036,12 +2233,9 @@
 
                 // Fetch challenges.json and render assigned set
                 console.log("[VISS-STATE] Fetching challenges.json for assigned set:", data.challenge_id);
-                fetch('challenges.json?t=' + Date.now())
-                    .then(res => {
-                        if (!res.ok) throw new Error("HTTP " + res.status + " fetching challenges.json");
-                        return res.json();
-                    })
+                fetchJsonWithRetry('challenges.json?t=' + Date.now())
                     .then(cData => {
+                        if (seq !== stateLoadSeq) return;
                         const challengeKey = data.challenge_id || 'set_a';
                         const challenge = (cData.challenges && cData.challenges[challengeKey]) || cData.challenges['set_a'];
                         const setLabel = data.set_name || 'SET A';
@@ -2147,7 +2341,7 @@
                 startAssessmentBtn.innerText = "Authenticating...";
                 console.log("[VISS-LOGIN] Submitting candidate login:", { name, email, usn, branch });
 
-                fetch('/api/login', {
+                fetchT('/api/login', {
                     method: 'POST',
                     credentials: 'include',
                     headers: {
@@ -2160,7 +2354,7 @@
                         usn: usn,
                         branch_sem: branch
                     })
-                })
+                }, 20000)
                 .then(res => {
                     if (!res.ok) throw new Error("Could not initialize session (HTTP " + res.status + ")");
                     return res.json();
@@ -2205,41 +2399,61 @@
             finishAssessment(false);
         });
 
-        function finishAssessment(isAuto = false) {
+        // The expiry timer, a save response that reports auto-submission, and the Submit button can all call
+        // finishAssessment() within the same second. Exactly one run may proceed.
+        let isFinishing = false;
+
+        // /api/finish is idempotent server-side (a repeat returns the recorded result), so it is safe to retry.
+        async function postFinish() {
+            for (let attempt = 0; attempt < 5; attempt++) {
+                try {
+                    const res = await fetchT('/api/finish', {
+                        method: 'POST',
+                        credentials: 'include',
+                        headers: { 'Accept': 'application/json' }
+                    }, 15000);
+                    if (res.ok) return { ok: true, data: await res.json() };
+                    if (res.status === 403) return { ok: false, locked: true };
+                    if (!isRetryableStatus(res.status)) return { ok: false };
+                } catch (e) { /* network error or timeout: retry */ }
+                await sleepMs(backoffMs(attempt));
+            }
+            return { ok: false };
+        }
+
+        async function finishAssessment(isAuto = false) {
+            if (isFinishing) return;
+            isFinishing = true;
             isAssessmentActive = false;
             if (serverTimerInterval) clearInterval(serverTimerInterval);
 
             submitBtn.disabled = true;
             submitBtn.innerText = isAuto ? "Time Expired — Finalizing..." : "Submitting assessment...";
 
-            fetch('/api/finish', {
-                method: 'POST',
-                credentials: 'include',
-                headers: {
-                    'Accept': 'application/json'
-                }
-            })
-            .then(res => {
-                if (!res.ok) throw new Error("HTTP " + res.status + " finalizing assessment");
-                return res.json();
-            })
-            .then(data => {
+            // The last answer may still be sitting in a debounce timer or on the wire: send it and wait for
+            // it BEFORE asking the server to grade, so the final click is never lost or sent after grading.
+            await flushPendingSaves(isAuto ? 4000 : 8000);
+
+            const result = await postFinish();
+            if (result.ok) {
+                const data = result.data;
                 disableForm(false);
                 submitBtn.style.display = 'none';
                 messageTitle.innerText = isAuto ? "Time Expired — Assessment Submitted" : "Submission Successful!";
                 messageTitle.style.color = "#0ca678";
                 messageText.innerHTML = `Thank you! Your responses for <strong>${data.set_name || window.currentSetLabel || 'this set'}</strong> have been finalized on the server.<br><br><strong>Final Score: ${data.score}</strong> | Completed in ${Math.round((data.time_taken_sec || 0)/60)}m`;
                 messageDiv.style.display = 'block';
-            })
-            .catch(err => {
-                console.error("Finish error:", err);
+            } else if (result.locked) {
+                lockAssessmentPermanently("server_locked");
+            } else {
+                console.error("Finish could not be confirmed with the server.");
                 disableForm(false);
                 submitBtn.style.display = 'none';
-                messageTitle.innerText = "Assessment Submitted!";
-                messageTitle.style.color = "#0ca678";
-                messageText.innerHTML = `Your assessment has been submitted and recorded.`;
+                messageTitle.innerText = "Submission Not Yet Confirmed";
+                messageTitle.style.color = "#d97706";
+                messageText.innerHTML = `We could not reach the server to confirm your submission. Your answers are saved and the server will submit them automatically when your time ends. Please inform your proctor.`;
                 messageDiv.style.display = 'block';
-            });
+            }
         }
 
         function disableForm(hideCompletely = false) {

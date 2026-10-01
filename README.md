@@ -39,6 +39,8 @@ Modern, secure, browser-based online assessment platform designed for the **AWS 
 ├── .dockerignore               # Docker ignore rules
 ├── scripts/
 │   └── view_telemetry_logs.py  # Forensic audit & telemetry inspection CLI tool
+├── tests/                      # Race-condition / resilience / client suites (see tests/README.md)
+├── RACE_AND_STABILITY_HANDOFF.md  # What was fixed, how it was verified, what to do before deploying
 └── .github/
     └── workflows/static.yml    # GitHub Pages deployment workflow
 ```
@@ -85,12 +87,29 @@ When hosted on Render (or locally):
 
 ---
 
+## ⚙️ Reliability Settings (environment variables, all optional)
+
+| Variable | Default | Meaning |
+|---|---|---|
+| `DATABASE_URL` | – | Postgres/Supabase connection string. **Set this explicitly**; the server also contains a built-in fallback (see handoff doc, security notes). |
+| `VISS_LOCAL_MODE` | off | `1` allows the in-memory/JSON offline store (local dev only). Without it a missing/failed database answers **HTTP 503** and clients retry, so candidate state never silently lives only in server memory. |
+| `DB_ACQUIRE_TIMEOUT` | `5` | Seconds a request waits for a pooled connection before answering 503. |
+| `HEALTH_FAIL_THRESHOLD` | `5` | Consecutive failed database probes before `/health` returns 503 (Render then restarts the instance). |
+| `BACKUP_FLUSH_DELAY` | `1.0` | Seconds the `submissions.json` backup batches records before one off-loop write. |
+| `MAX_REQUEST_BYTES` | `524288` | Request bodies larger than this are rejected with 413. |
+
 ## 💻 Local Development & Testing
 
-1. Start the server locally:
+> ⚠️ **`python3 server.py` connects to whatever `DATABASE_URL` points at, and falls back to a built-in Supabase URL when it is unset.**
+> For local work, point `DATABASE_URL` at a local Postgres, or run with `VISS_LOCAL_MODE=1` and no database.
+> Never start it against the live database during an exam.
+
+1. Start the server locally. Setting `DATABASE_URL` to a local address also guarantees the built-in Supabase fallback
+   is never used; with nothing listening there, `VISS_LOCAL_MODE=1` makes the server use its in-memory/JSON store:
    ```bash
-   python3 server.py
+   VISS_LOCAL_MODE=1 DATABASE_URL=postgresql://postgres:test@127.0.0.1:55432/postgres python3 server.py
    ```
+   (or run `tests/setup_test_db.sh` first and the same URL will reach a real throwaway Postgres.)
 2. Open your browser and navigate to:
    ```text
    http://localhost:8080/

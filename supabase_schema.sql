@@ -11,10 +11,16 @@ DO $$ BEGIN
             'locked',
             'unlocked',
             'completed',
-            'time_expired'
+            'time_expired',
+            'submitted'
         );
     END IF;
 END $$;
+
+-- server.py and command_center.py write status = 'submitted' (finish, auto-submit, proctor override).
+-- Databases created from an older copy of this file lack the value, which makes every submission
+-- UPDATE fail with "invalid input value for enum candidate_status_enum". Safe to re-run.
+ALTER TYPE candidate_status_enum ADD VALUE IF NOT EXISTS 'submitted';
 
 -- 2. Create Candidates Table (Tracks identity, session, server start_time, set, and proctoring)
 CREATE TABLE IF NOT EXISTS candidates (
