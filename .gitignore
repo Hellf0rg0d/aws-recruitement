@@ -19,3 +19,8 @@ audit_*.json
 session_*.json
 *.xlsx
 *.csv
+
+# Local Command Center Application (Proctor only)
+command_center.py
+start_command_center.sh
+templates/
