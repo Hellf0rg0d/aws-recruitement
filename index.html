@@ -1666,12 +1666,16 @@
                 .then(async res => {
                     if (res.status === 403) {
                         const err = await res.json().catch(() => ({}));
-                        alert(err.detail || "Assessment time has expired or assessment was submitted.");
+                        alert(err.detail || "Assessment session is locked or already submitted.");
                         disableForm(true);
                         return;
                     }
                     if (res.ok) {
                         const resData = await res.json().catch(() => ({}));
+                        if (resData.status === 'submitted' || resData.auto_submitted) {
+                            finishAssessment(true);
+                            return;
+                        }
                         if (resData.time_remaining !== undefined) {
                             syncServerCountdown(resData.time_remaining);
                         }
@@ -2051,15 +2055,15 @@
                             disableForm(false);
                             messageTitle.innerText = "Submission Received!";
                             messageTitle.style.color = "#0ca678";
-                            messageText.innerHTML = `You have completed and submitted your recruitment test for <strong>${setLabel}</strong>.<br><strong>Final Score: ${data.score !== undefined ? data.score + '/' + (data.total_possible || 15) : 'Graded'}</strong>`;
+                            messageText.innerHTML = `You have completed and submitted your recruitment test for <strong>${setLabel}</strong>.<br><br><strong>Final Score: ${data.score !== undefined ? data.score + '/' + (data.total_possible || 15) : 'Graded'}</strong>`;
                             messageDiv.style.display = 'block';
                             submitBtn.style.display = 'none';
                         } else if (data.status === 'time_expired' || data.time_remaining <= 0) {
-                            console.log("[VISS-STATE] Test time expired.");
+                            console.log("[VISS-STATE] Test time expired, auto-submitted.");
                             disableForm(false);
-                            messageTitle.innerText = "Assessment Period Expired";
-                            messageTitle.style.color = "#d9534f";
-                            messageText.innerHTML = `Your allocated time for <strong>${setLabel}</strong> has elapsed. Saved responses have been recorded on the server.`;
+                            messageTitle.innerText = "Time Expired — Assessment Submitted";
+                            messageTitle.style.color = "#0ca678";
+                            messageText.innerHTML = `Your allocated time for <strong>${setLabel}</strong> has elapsed. Your answers have been automatically graded and finalized.<br><br><strong>Final Score: ${data.score !== undefined ? data.score + '/' + (data.total_possible || 15) : 'Graded'}</strong>`;
                             messageDiv.style.display = 'block';
                             submitBtn.style.display = 'none';
                         } else {
