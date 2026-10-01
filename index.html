@@ -974,9 +974,20 @@
             }, immediate ? 0 : 250);
         }
 
+        // Page Unload / Refresh Protection
+        // Critical: Do NOT fire fake focus losses or send stale violation beacons during reload!
+        let isPageUnloading = false;
         window.addEventListener('beforeunload', function() {
-            syncSecurityViolation(true);
+            isPageUnloading = true;
         });
+        window.addEventListener('pagehide', function() {
+            isPageUnloading = true;
+        });
+        window.addEventListener('keydown', function(e) {
+            if (e.key === 'F5' || ((e.ctrlKey || e.metaKey) && (e.key === 'r' || e.key === 'R'))) {
+                isPageUnloading = true;
+            }
+        }, true);
         let activeQuestionSyncTimer = null;
         let lastReportedActiveQid = null;
         function syncActiveQuestion() {
@@ -1048,7 +1059,7 @@
         let isFullscreenCurrentlyOut = false;
 
         function handleFullscreenChange() {
-            if (!isAssessmentActive || isSubmitted) return;
+            if (isPageUnloading || !isAssessmentActive || isSubmitted) return;
             if (fsModal.style.display === 'none') {
                 if (!isFullscreen()) {
                     if (isFullscreenCurrentlyOut) return;
@@ -1107,7 +1118,7 @@
         }, true);
 
         function triggerFocusLoss(reason) {
-            if (!isAssessmentActive || isSubmitted) return;
+            if (isPageUnloading || !isAssessmentActive || isSubmitted) return;
             if (fsModal.style.display !== 'none') return;
             
             // Critical Anti-Double-Counting Guard:
@@ -1154,7 +1165,7 @@
 
         // True tab switch or window minimized: document.visibilitychange
         document.addEventListener('visibilitychange', function() {
-            if (!isAssessmentActive || isSubmitted) return;
+            if (isPageUnloading || !isAssessmentActive || isSubmitted) return;
             if (document.hidden) {
                 triggerFocusLoss('visibility_hidden');
             } else {
@@ -1168,7 +1179,7 @@
 
         // Window blur with grace period & activeElement check
         window.addEventListener('blur', function() {
-            if (!isAssessmentActive || isSubmitted) return;
+            if (isPageUnloading || !isAssessmentActive || isSubmitted) return;
             // Ignore if user recently interacted with an input or pressed Tab
             if (Date.now() - lastTabPressTime < 2500 || Date.now() - lastInputInteractionTime < 2500) {
                 return;
@@ -1377,6 +1388,11 @@
 
             // If any key is pressed while Control or Command is active
             if (isModifier) {
+                if (key === 'r') {
+                    // Browser refresh shortcut (Ctrl+R / Cmd+R) — allow clean reload without penalty
+                    isPageUnloading = true;
+                    return;
+                }
                 ctrlCmdAttempts++;
                 const comboName = (e.metaKey ? 'Cmd+' : 'Ctrl+') + (e.shiftKey ? 'Shift+' : '') + key.toUpperCase();
                 logSecurityViolation('ctrl_cmd_combo', { combo: comboName, count: ctrlCmdAttempts }, e.target);
