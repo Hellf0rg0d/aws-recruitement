@@ -1,0 +1,1737 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AWS Classroom Proctor — Command Center</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-base: #07090e;
+            --bg-surface: #0e131f;
+            --bg-card: #131a2a;
+            --bg-card-hover: #172136;
+            --border-subtle: #1e293b;
+            --border-focus: #38bdf8;
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --accent-emerald: #10b981;
+            --accent-emerald-glow: rgba(16, 185, 129, 0.2);
+            --accent-crimson: #ef4444;
+            --accent-crimson-glow: rgba(239, 68, 68, 0.25);
+            --accent-amber: #f59e0b;
+            --accent-amber-glow: rgba(245, 158, 11, 0.2);
+            --accent-cyan: #06b6d4;
+            --accent-cyan-glow: rgba(6, 182, 212, 0.25);
+            --accent-indigo: #6366f1;
+            --accent-purple: #8b5cf6;
+            --aws-orange: #ff9900;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-base);
+            color: var(--text-primary);
+            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+        }
+
+        /* Top Mission Control Bar */
+        header.command-header {
+            background: rgba(14, 19, 31, 0.85);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--border-subtle);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            padding: 12px 24px;
+        }
+
+        .header-content {
+            max-width: 1600px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
+        }
+
+        .brand-section {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .brand-badge {
+            background: linear-gradient(135deg, #ff9900 0%, #f97316 100%);
+            color: #000;
+            font-weight: 800;
+            font-size: 13px;
+            padding: 4px 8px;
+            border-radius: 6px;
+            letter-spacing: 0.5px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .brand-title {
+            font-size: 18px;
+            font-weight: 800;
+            letter-spacing: -0.3px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .brand-sub {
+            font-size: 12px;
+            color: var(--text-muted);
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .connection-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+            font-weight: 600;
+            padding: 4px 12px;
+            border-radius: 9999px;
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            color: #34d399;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .connection-indicator.offline {
+            background: rgba(239, 68, 68, 0.1);
+            border-color: rgba(239, 68, 68, 0.3);
+            color: #f87171;
+        }
+
+        .pulse-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: currentColor;
+            animation: pulse-ring 2s infinite;
+        }
+
+        @keyframes pulse-ring {
+            0% { transform: scale(0.95); opacity: 0.8; }
+            50% { transform: scale(1.3); opacity: 1; }
+            100% { transform: scale(0.95); opacity: 0.8; }
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 14px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.15s ease-in-out;
+            border: 1px solid transparent;
+            font-family: inherit;
+        }
+
+        .btn-primary {
+            background: #2563eb;
+            color: white;
+            border-color: #3b82f6;
+        }
+        .btn-primary:hover {
+            background: #1d4ed8;
+        }
+
+        .btn-secondary {
+            background: #1e293b;
+            color: var(--text-primary);
+            border-color: #334155;
+        }
+        .btn-secondary:hover {
+            background: #334155;
+        }
+
+        .btn-emerald {
+            background: rgba(16, 185, 129, 0.15);
+            color: #34d399;
+            border-color: rgba(16, 185, 129, 0.3);
+        }
+        .btn-emerald:hover {
+            background: rgba(16, 185, 129, 0.25);
+            border-color: rgba(16, 185, 129, 0.5);
+            color: #6ee7b7;
+        }
+
+        .btn-crimson {
+            background: rgba(239, 68, 68, 0.15);
+            color: #f87171;
+            border-color: rgba(239, 68, 68, 0.3);
+        }
+        .btn-crimson:hover {
+            background: rgba(239, 68, 68, 0.25);
+            border-color: rgba(239, 68, 68, 0.5);
+            color: #fca5a5;
+        }
+
+        .btn-amber {
+            background: rgba(245, 158, 11, 0.15);
+            color: #fbbf24;
+            border-color: rgba(245, 158, 11, 0.3);
+        }
+        .btn-amber:hover {
+            background: rgba(245, 158, 11, 0.25);
+            border-color: rgba(245, 158, 11, 0.5);
+        }
+
+        .stream-toggle {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            background: #131a2a;
+            border: 1px solid var(--border-subtle);
+            padding: 6px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            user-select: none;
+        }
+        .stream-toggle.active {
+            border-color: #38bdf8;
+            background: rgba(56, 189, 248, 0.1);
+            color: #38bdf8;
+        }
+
+        /* Main Container */
+        main.container {
+            max-width: 1600px;
+            width: 100%;
+            margin: 0 auto;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            flex: 1;
+        }
+
+        /* KPI HUD Grid */
+        .hud-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+            gap: 14px;
+        }
+
+        .kpi-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: 12px;
+            padding: 16px 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            position: relative;
+            overflow: hidden;
+            transition: transform 0.2s ease, border-color 0.2s ease;
+        }
+
+        .kpi-card:hover {
+            border-color: #334155;
+            transform: translateY(-2px);
+        }
+
+        .kpi-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: var(--card-accent, #3b82f6);
+        }
+
+        .kpi-card.alert-locked {
+            --card-accent: var(--accent-crimson);
+            background: rgba(239, 68, 68, 0.04);
+            border-color: rgba(239, 68, 68, 0.3);
+        }
+
+        .kpi-card.alert-locked .kpi-value {
+            color: #ef4444;
+            text-shadow: 0 0 16px rgba(239, 68, 68, 0.4);
+        }
+
+        .kpi-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .kpi-title {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            color: var(--text-muted);
+        }
+
+        .kpi-icon {
+            font-size: 16px;
+        }
+
+        .kpi-value {
+            font-size: 28px;
+            font-weight: 800;
+            font-family: 'JetBrains Mono', monospace;
+            letter-spacing: -0.5px;
+            line-height: 1.1;
+        }
+
+        .kpi-meta {
+            font-size: 12px;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        /* Controls Strip */
+        .controls-strip {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-subtle);
+            border-radius: 12px;
+            padding: 14px 18px;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+        }
+
+        .search-wrapper {
+            position: relative;
+            flex: 1;
+            min-width: 280px;
+            max-width: 480px;
+        }
+
+        .search-input {
+            width: 100%;
+            background: var(--bg-base);
+            border: 1px solid var(--border-subtle);
+            color: var(--text-primary);
+            padding: 10px 14px 10px 38px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: inherit;
+            outline: none;
+            transition: border-color 0.15s ease, box-shadow 0.15s ease;
+        }
+
+        .search-input:focus {
+            border-color: #38bdf8;
+            box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.15);
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 14px;
+            color: var(--text-muted);
+        }
+
+        .search-kbd {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: #1e293b;
+            color: var(--text-muted);
+            border-radius: 4px;
+            padding: 2px 6px;
+            font-size: 11px;
+            font-family: 'JetBrains Mono', monospace;
+            border: 1px solid #334155;
+        }
+
+        .filter-groups {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .filter-pill-group {
+            display: flex;
+            background: var(--bg-base);
+            padding: 3px;
+            border-radius: 8px;
+            border: 1px solid var(--border-subtle);
+        }
+
+        .filter-pill {
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            cursor: pointer;
+            border: none;
+            background: transparent;
+            transition: all 0.15s ease;
+            font-family: inherit;
+        }
+
+        .filter-pill:hover {
+            color: var(--text-primary);
+        }
+
+        .filter-pill.active {
+            background: #1e293b;
+            color: #38bdf8;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+        }
+
+        .filter-pill.active.pill-locked {
+            background: rgba(239, 68, 68, 0.15);
+            color: #f87171;
+        }
+
+        .view-switcher {
+            display: flex;
+            background: var(--bg-base);
+            padding: 3px;
+            border-radius: 8px;
+            border: 1px solid var(--border-subtle);
+        }
+
+        .view-btn {
+            padding: 6px 10px;
+            border-radius: 6px;
+            font-size: 13px;
+            border: none;
+            background: transparent;
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .view-btn.active {
+            background: #1e293b;
+            color: var(--text-primary);
+        }
+
+        /* Candidates Cards Grid */
+        .candidates-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(370px, 1fr));
+            gap: 18px;
+        }
+
+        .candidate-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: 14px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            transition: all 0.2s ease;
+            position: relative;
+        }
+
+        .candidate-card:hover {
+            border-color: #334155;
+            background: var(--bg-card-hover);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+        }
+
+        .candidate-card.status-locked {
+            border-color: rgba(239, 68, 68, 0.5);
+            background: linear-gradient(180deg, rgba(239, 68, 68, 0.08) 0%, rgba(19, 26, 42, 0.95) 40%);
+        }
+
+        .candidate-card.status-in_progress {
+            border-left: 3px solid #10b981;
+        }
+
+        .candidate-card.status-locked {
+            border-left: 3px solid #ef4444;
+        }
+
+        .candidate-card.status-submitted {
+            border-left: 3px solid #3b82f6;
+        }
+
+        .card-top {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            border-radius: 9999px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .status-badge.in_progress {
+            background: rgba(16, 185, 129, 0.15);
+            color: #34d399;
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+
+        .status-badge.locked {
+            background: rgba(239, 68, 68, 0.2);
+            color: #f87171;
+            border: 1px solid rgba(239, 68, 68, 0.4);
+            animation: pulse-danger 2s infinite;
+        }
+
+        @keyframes pulse-danger {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+            50% { box-shadow: 0 0 12px 2px rgba(239, 68, 68, 0.5); }
+        }
+
+        .status-badge.unlocked {
+            background: rgba(245, 158, 11, 0.15);
+            color: #fbbf24;
+            border: 1px solid rgba(245, 158, 11, 0.3);
+        }
+
+        .status-badge.submitted {
+            background: rgba(59, 130, 246, 0.15);
+            color: #60a5fa;
+            border: 1px solid rgba(59, 130, 246, 0.3);
+        }
+
+        .status-badge.time_expired {
+            background: rgba(100, 116, 139, 0.15);
+            color: #94a3b8;
+            border: 1px solid rgba(100, 116, 139, 0.3);
+        }
+
+        .set-badge {
+            font-size: 11px;
+            font-weight: 700;
+            padding: 3px 8px;
+            border-radius: 6px;
+            background: #1e293b;
+            color: #e2e8f0;
+            border: 1px solid #334155;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .set-badge.set-a {
+            background: rgba(59, 130, 246, 0.12);
+            color: #60a5fa;
+            border-color: rgba(59, 130, 246, 0.3);
+        }
+
+        .set-badge.set-b {
+            background: rgba(139, 92, 246, 0.12);
+            color: #a78bfa;
+            border-color: rgba(139, 92, 246, 0.3);
+        }
+
+        .set-badge.set-c {
+            background: rgba(20, 184, 166, 0.12);
+            color: #2dd4bf;
+            border-color: rgba(20, 184, 166, 0.3);
+        }
+
+        .timer-display {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 15px;
+            font-weight: 700;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            color: var(--text-primary);
+        }
+
+        .timer-display.urgent {
+            color: #ef4444;
+            animation: pulse-danger 1.5s infinite;
+        }
+
+        .timer-display.warning {
+            color: #f59e0b;
+        }
+
+        .student-profile {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .student-name {
+            font-size: 17px;
+            font-weight: 700;
+            letter-spacing: -0.2px;
+            color: var(--text-primary);
+        }
+
+        .student-meta {
+            font-size: 13px;
+            color: var(--text-secondary);
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .student-email {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        /* Question Radar Progress */
+        .progress-section {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-subtle);
+            border-radius: 10px;
+            padding: 12px 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .progress-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 12px;
+        }
+
+        .active-question-label {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-weight: 600;
+            color: #38bdf8;
+        }
+
+        .active-ping {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background-color: #38bdf8;
+            box-shadow: 0 0 8px #38bdf8;
+        }
+
+        .answered-count-badge {
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .progress-bar-track {
+            height: 6px;
+            background: #1e293b;
+            border-radius: 9999px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #3b82f6 0%, #10b981 100%);
+            border-radius: 9999px;
+            transition: width 0.3s ease;
+        }
+
+        /* 15 Question Matrix Grid */
+        .question-matrix {
+            display: grid;
+            grid-template-columns: repeat(15, 1fr);
+            gap: 4px;
+            margin-top: 4px;
+        }
+
+        .matrix-pill {
+            aspect-ratio: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            font-weight: 700;
+            font-family: 'JetBrains Mono', monospace;
+            border-radius: 4px;
+            background: #1e293b;
+            color: var(--text-muted);
+            border: 1px solid transparent;
+            cursor: default;
+            position: relative;
+            transition: all 0.15s ease;
+        }
+
+        .matrix-pill.answered {
+            background: rgba(16, 185, 129, 0.25);
+            color: #34d399;
+            border-color: rgba(16, 185, 129, 0.4);
+        }
+
+        .matrix-pill.active-now {
+            background: rgba(56, 189, 248, 0.25);
+            color: #38bdf8;
+            border-color: #38bdf8;
+            box-shadow: 0 0 8px rgba(56, 189, 248, 0.6);
+            transform: scale(1.1);
+            z-index: 2;
+        }
+
+        /* Proctoring Security Badges */
+        .security-strip {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 12px;
+            font-family: 'JetBrains Mono', monospace;
+            padding-top: 4px;
+            border-top: 1px dashed var(--border-subtle);
+        }
+
+        .strike-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 3px 8px;
+            border-radius: 6px;
+            background: #1e293b;
+            color: var(--text-secondary);
+        }
+
+        .strike-pill.warning {
+            background: rgba(245, 158, 11, 0.15);
+            color: #fbbf24;
+            border: 1px solid rgba(245, 158, 11, 0.3);
+        }
+
+        .strike-pill.danger {
+            background: rgba(239, 68, 68, 0.2);
+            color: #f87171;
+            border: 1px solid rgba(239, 68, 68, 0.4);
+        }
+
+        /* Actions Bar */
+        .card-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: auto;
+            padding-top: 6px;
+        }
+
+        .card-actions .btn {
+            flex: 1;
+            justify-content: center;
+            padding: 8px 10px;
+            font-size: 12px;
+        }
+
+        .btn-unlock-big {
+            flex: 2 !important;
+            background: #10b981 !important;
+            color: #000 !important;
+            font-weight: 800 !important;
+            border-color: #34d399 !important;
+            box-shadow: 0 0 16px rgba(16, 185, 129, 0.4);
+            animation: pulse-emerald 2s infinite;
+        }
+
+        @keyframes pulse-emerald {
+            0%, 100% { box-shadow: 0 0 8px rgba(16, 185, 129, 0.4); }
+            50% { box-shadow: 0 0 20px rgba(16, 185, 129, 0.7); }
+        }
+
+        /* Table View */
+        .table-container {
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: 12px;
+            overflow-x: auto;
+        }
+
+        table.command-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+            text-align: left;
+        }
+
+        table.command-table th {
+            background: var(--bg-surface);
+            padding: 12px 16px;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            font-size: 11px;
+            letter-spacing: 0.5px;
+            border-bottom: 1px solid var(--border-subtle);
+        }
+
+        table.command-table td {
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--border-subtle);
+            color: var(--text-primary);
+        }
+
+        table.command-table tr:hover td {
+            background: var(--bg-card-hover);
+        }
+
+        /* Deep-Dive Audit Modal */
+        .modal-backdrop {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(8px);
+            z-index: 1000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+        }
+
+        .modal-backdrop.open {
+            display: flex;
+        }
+
+        .modal-box {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-subtle);
+            border-radius: 16px;
+            width: 100%;
+            max-width: 900px;
+            max-height: 90vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+        }
+
+        .modal-header {
+            padding: 18px 24px;
+            border-bottom: 1px solid var(--border-subtle);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: #131a2a;
+        }
+
+        .modal-title {
+            font-size: 18px;
+            font-weight: 800;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .close-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            font-size: 20px;
+            cursor: pointer;
+            padding: 4px;
+            line-height: 1;
+        }
+        .close-btn:hover {
+            color: var(--text-primary);
+        }
+
+        .modal-body {
+            padding: 24px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .audit-q-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: 10px;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .audit-q-card.is-correct {
+            border-left: 3px solid #10b981;
+        }
+        .audit-q-card.is-incorrect {
+            border-left: 3px solid #ef4444;
+        }
+        .audit-q-card.is-unanswered {
+            border-left: 3px solid #64748b;
+        }
+
+        .audit-q-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 13px;
+            font-weight: 700;
+        }
+
+        .audit-opt-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 13px;
+            background: #0b0f19;
+            border: 1px solid #1e293b;
+        }
+
+        .audit-opt-row.selected-answer {
+            border-color: #38bdf8;
+            background: rgba(56, 189, 248, 0.08);
+        }
+
+        .audit-opt-row.correct-key {
+            border-color: #10b981;
+            background: rgba(16, 185, 129, 0.08);
+        }
+
+        /* Toast notification */
+        .toast-notification {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            background: #1e293b;
+            color: var(--text-primary);
+            border: 1px solid #334155;
+            padding: 12px 20px;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            z-index: 9999;
+            transform: translateY(100px);
+            opacity: 0;
+            transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .toast-notification.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        .empty-state {
+            padding: 60px 20px;
+            text-align: center;
+            color: var(--text-muted);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .empty-state-icon {
+            font-size: 40px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Header Navigation -->
+    <header class="command-header">
+        <div class="header-content">
+            <div class="brand-section">
+                <div class="brand-badge">AWS</div>
+                <div>
+                    <div class="brand-title">
+                        Classroom Proctor Command Center
+                        <span id="connectionBadge" class="connection-indicator">
+                            <span class="pulse-dot"></span>
+                            <span id="connectionText">CONNECTING...</span>
+                        </span>
+                    </div>
+                    <div class="brand-sub">Real-Time Examination Telemetry & Administration</div>
+                </div>
+            </div>
+
+            <div class="header-actions">
+                <div id="streamToggle" class="stream-toggle active" title="Toggle 3-second live auto-refresh">
+                    <span class="pulse-dot"></span>
+                    <span>⚡ Live Stream</span>
+                </div>
+                <button id="refreshBtn" class="btn btn-secondary" title="Refresh now (Shortcut: R)">
+                    🔄 Refresh
+                </button>
+                <button id="exportCsvBtn" class="btn btn-secondary" title="Export candidate data to CSV">
+                    📥 Export CSV
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Command Body -->
+    <main class="container">
+
+        <!-- Top HUD Metrics -->
+        <section class="hud-grid">
+            <div class="kpi-card" style="--card-accent: #3b82f6;">
+                <div class="kpi-header">
+                    <span class="kpi-title">Total Candidates</span>
+                    <span class="kpi-icon">👥</span>
+                </div>
+                <div id="kpiTotal" class="kpi-value">0</div>
+                <div class="kpi-meta">Enrolled in database</div>
+            </div>
+
+            <div class="kpi-card" style="--card-accent: #10b981;">
+                <div class="kpi-header">
+                    <span class="kpi-title">Active Testing</span>
+                    <span class="kpi-icon">🟢</span>
+                </div>
+                <div id="kpiActive" class="kpi-value" style="color: #34d399;">0</div>
+                <div class="kpi-meta">Currently in progress</div>
+            </div>
+
+            <div id="kpiLockedCard" class="kpi-card alert-locked">
+                <div class="kpi-header">
+                    <span class="kpi-title">Security Locked</span>
+                    <span class="kpi-icon">🚨</span>
+                </div>
+                <div id="kpiLocked" class="kpi-value">0</div>
+                <div class="kpi-meta">Requires proctor override</div>
+            </div>
+
+            <div class="kpi-card" style="--card-accent: #6366f1;">
+                <div class="kpi-header">
+                    <span class="kpi-title">Finalized / Submitted</span>
+                    <span class="kpi-icon">🏁</span>
+                </div>
+                <div id="kpiSubmitted" class="kpi-value" style="color: #818cf8;">0</div>
+                <div class="kpi-meta">Assessment completed</div>
+            </div>
+
+            <div class="kpi-card" style="--card-accent: #06b6d4;">
+                <div class="kpi-header">
+                    <span class="kpi-title">Avg Questions Answered</span>
+                    <span class="kpi-icon">📊</span>
+                </div>
+                <div id="kpiAvgProgress" class="kpi-value">0 / 15</div>
+                <div class="kpi-meta" id="kpiProgressPct">0% cohort completion</div>
+            </div>
+
+            <div class="kpi-card" style="--card-accent: #ff9900;">
+                <div class="kpi-header">
+                    <span class="kpi-title">Class Average Score</span>
+                    <span class="kpi-icon">🎯</span>
+                </div>
+                <div id="kpiAvgScore" class="kpi-value">0.0</div>
+                <div class="kpi-meta">Graded submissions</div>
+            </div>
+        </section>
+
+        <!-- Command Controls Strip -->
+        <section class="controls-strip">
+            <div class="search-wrapper">
+                <span class="search-icon">🔍</span>
+                <input type="text" id="searchInput" class="search-input" placeholder="Search candidate by name, USN, or email...">
+                <kbd class="search-kbd">/</kbd>
+            </div>
+
+            <div class="filter-groups">
+                <!-- Status Filter -->
+                <div class="filter-pill-group">
+                    <button class="filter-pill active" data-filter-status="all">All</button>
+                    <button class="filter-pill" data-filter-status="in_progress">Active</button>
+                    <button class="filter-pill pill-locked" data-filter-status="locked">🚨 Locked</button>
+                    <button class="filter-pill" data-filter-status="submitted">Submitted</button>
+                </div>
+
+                <!-- Set Filter -->
+                <div class="filter-pill-group">
+                    <button class="filter-pill active" data-filter-set="all">All Sets</button>
+                    <button class="filter-pill" data-filter-set="set_a">Set A</button>
+                    <button class="filter-pill" data-filter-set="set_b">Set B</button>
+                    <button class="filter-pill" data-filter-set="set_c">Set C</button>
+                </div>
+
+                <!-- View Switcher -->
+                <div class="view-switcher">
+                    <button id="viewCardsBtn" class="view-btn active" title="Cards View">🎴 Cards</button>
+                    <button id="viewTableBtn" class="view-btn" title="Table View">📋 Table</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Candidates Container (Cards vs Table) -->
+        <div id="candidatesCardsView" class="candidates-grid"></div>
+        
+        <div id="candidatesTableView" class="table-container" style="display: none;">
+            <table class="command-table">
+                <thead>
+                    <tr>
+                        <th>Status</th>
+                        <th>Candidate Details</th>
+                        <th>Set</th>
+                        <th>Active Question</th>
+                        <th>Progress</th>
+                        <th>Time Left</th>
+                        <th>Strikes (Exits/Focus)</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody"></tbody>
+            </table>
+        </div>
+
+        <div id="emptyState" class="empty-state" style="display: none;">
+            <div class="empty-state-icon">🛰️</div>
+            <h3>No Candidates Found</h3>
+            <p>No student sessions match the selected search query or filter criteria.</p>
+        </div>
+
+    </main>
+
+    <!-- Deep-Dive Audit Modal -->
+    <div id="auditModal" class="modal-backdrop">
+        <div class="modal-box">
+            <div class="modal-header">
+                <div class="modal-title">
+                    <span>🔍</span>
+                    <span id="modalCandidateName">Candidate Examination Audit</span>
+                </div>
+                <button class="close-btn" id="closeModalBtn">&times;</button>
+            </div>
+            <div class="modal-body" id="modalAuditBody">
+                <!-- Populated dynamically via JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast-notification"></div>
+
+    <script>
+        // State
+        let candidatesData = [];
+        let isStreaming = true;
+        let streamInterval = null;
+        let currentStatusFilter = 'all';
+        let currentSetFilter = 'all';
+        let currentSearchQuery = '';
+        let currentView = 'cards';
+        let previousLockedEmails = new Set();
+
+        // Audio alert for lockouts
+        const audioCtx = (window.AudioContext || window.webkitAudioContext) ? new (window.AudioContext || window.webkitAudioContext)() : null;
+        function playAlertChime() {
+            if (!audioCtx) return;
+            try {
+                if (audioCtx.state === 'suspended') audioCtx.resume();
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(440, audioCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(880, audioCtx.currentTime + 0.3);
+                gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.4);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.4);
+            } catch(e) {}
+        }
+
+        function showToast(msg, isError = false) {
+            const toast = document.getElementById('toast');
+            toast.innerText = msg;
+            toast.style.borderColor = isError ? '#ef4444' : '#10b981';
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 3500);
+        }
+
+        // Fetch Data from Server
+        // The stream timer fires every 3s. Without a guard a slow database makes polls stack up behind each other
+        // (each runs two queries on a 10-connection pool), which slows the very database the candidates use.
+        let fetchCandidatesInFlight = false;
+        async function fetchCandidates() {
+            if (fetchCandidatesInFlight) return;
+            fetchCandidatesInFlight = true;
+            const ctrl = new AbortController();
+            const timer = setTimeout(() => ctrl.abort(), 10000);
+            try {
+                const res = await fetch('/api/candidates', { signal: ctrl.signal });
+                if (!res.ok) throw new Error("HTTP " + res.status);
+                const data = await res.json();
+                candidatesData = data.candidates || [];
+
+                updateConnectionStatus(true);
+                updateHudMetrics();
+                renderCandidates();
+                checkNewLockouts();
+            } catch (err) {
+                console.error("Fetch candidates error:", err);
+                updateConnectionStatus(false);
+            } finally {
+                clearTimeout(timer);
+                fetchCandidatesInFlight = false;
+            }
+        }
+
+        function updateConnectionStatus(isConnected) {
+            const badge = document.getElementById('connectionBadge');
+            const text = document.getElementById('connectionText');
+            if (isConnected) {
+                badge.className = 'connection-indicator';
+                text.innerText = 'DATABASE LIVE (POOL CONNECTED)';
+            } else {
+                badge.className = 'connection-indicator offline';
+                text.innerText = 'DISCONNECTED (CHECK .ENV)';
+            }
+        }
+
+        function updateHudMetrics() {
+            const total = candidatesData.length;
+            const active = candidatesData.filter(c => c.status === 'in_progress').length;
+            const locked = candidatesData.filter(c => c.status === 'locked').length;
+            const submitted = candidatesData.filter(c => c.status === 'submitted').length;
+
+            document.getElementById('kpiTotal').innerText = total;
+            document.getElementById('kpiActive').innerText = active;
+            document.getElementById('kpiLocked').innerText = locked;
+            document.getElementById('kpiSubmitted').innerText = submitted;
+
+            const lockedCard = document.getElementById('kpiLockedCard');
+            if (locked > 0) {
+                lockedCard.classList.add('alert-locked');
+            } else {
+                lockedCard.classList.remove('alert-locked');
+            }
+
+            // Averages
+            const totalAnswered = candidatesData.reduce((acc, c) => acc + (c.answered_count || 0), 0);
+            const avgAnswered = total > 0 ? (totalAnswered / total).toFixed(1) : "0.0";
+            const avgPct = total > 0 ? Math.round((totalAnswered / (total * 15)) * 100) : 0;
+            document.getElementById('kpiAvgProgress').innerText = `${avgAnswered} / 15`;
+            document.getElementById('kpiProgressPct').innerText = `${avgPct}% cohort completion`;
+
+            const graded = candidatesData.filter(c => c.status === 'submitted');
+            const totalScore = graded.reduce((acc, c) => acc + (c.score || 0), 0);
+            const avgScore = graded.length > 0 ? (totalScore / graded.length).toFixed(1) : "0.0";
+            document.getElementById('kpiAvgScore').innerText = `${avgScore} / 15`;
+        }
+
+        function checkNewLockouts() {
+            const currentLocked = new Set(candidatesData.filter(c => c.status === 'locked').map(c => c.email));
+            for (const email of currentLocked) {
+                if (!previousLockedEmails.has(email)) {
+                    playAlertChime();
+                    showToast(`🚨 Security Alert: Candidate ${email} has been locked!`, true);
+                    break;
+                }
+            }
+            previousLockedEmails = currentLocked;
+        }
+
+        // Filtering & Rendering
+        function getFilteredCandidates() {
+            return candidatesData.filter(c => {
+                // Status Filter
+                if (currentStatusFilter !== 'all') {
+                    if (c.status !== currentStatusFilter) return false;
+                }
+                // Set Filter
+                if (currentSetFilter !== 'all') {
+                    const ch = (c.challenge_id || '').toLowerCase();
+                    if (!ch.includes(currentSetFilter)) return false;
+                }
+                // Search Query
+                if (currentSearchQuery) {
+                    const q = currentSearchQuery.toLowerCase();
+                    const name = (c.name || '').toLowerCase();
+                    const email = (c.email || '').toLowerCase();
+                    const usn = (c.usn || '').toLowerCase();
+                    if (!name.includes(q) && !email.includes(q) && !usn.includes(q)) return false;
+                }
+                return true;
+            });
+        }
+
+        function renderCandidates() {
+            const filtered = getFilteredCandidates();
+            const emptyEl = document.getElementById('emptyState');
+            const cardsView = document.getElementById('candidatesCardsView');
+            const tableView = document.getElementById('candidatesTableView');
+
+            if (filtered.length === 0) {
+                emptyEl.style.display = 'flex';
+                cardsView.style.display = 'none';
+                tableView.style.display = 'none';
+                return;
+            } else {
+                emptyEl.style.display = 'none';
+            }
+
+            if (currentView === 'cards') {
+                cardsView.style.display = 'grid';
+                tableView.style.display = 'none';
+                renderCards(filtered);
+            } else {
+                cardsView.style.display = 'none';
+                tableView.style.display = 'block';
+                renderTable(filtered);
+            }
+        }
+
+        function renderCards(list) {
+            const container = document.getElementById('candidatesCardsView');
+            container.innerHTML = list.map(c => {
+                const status = c.status || 'in_progress';
+                const statusLabel = status.replace('_', ' ').toUpperCase();
+                const exits = c.fullscreen_exits || 0;
+                const switches = c.tab_switches || 0;
+                const copyAttempts = c.copy_attempts || 0;
+
+                const timerUrgent = c.seconds_remaining < 180 ? 'urgent' : (c.seconds_remaining < 600 ? 'warning' : '');
+                const setClass = (c.challenge_id || 'set_a').replace('_', '-');
+
+                // Generate 15 matrix pills
+                let matrixPillsHtml = '';
+                const answeredMap = c.answers_map || {};
+                const currentQ = (c.current_question || 'q1').toLowerCase();
+
+                for (let i = 1; i <= 15; i++) {
+                    const qid = 'q' + i;
+                    const isAnswered = Boolean(answeredMap[qid]);
+                    const isCurrent = (currentQ === qid && status === 'in_progress');
+                    const pillClass = isCurrent ? 'active-now' : (isAnswered ? 'answered' : '');
+                    const optText = isAnswered ? `Ans: ${answeredMap[qid].toUpperCase()}` : 'Unanswered';
+                    matrixPillsHtml += `<div class="matrix-pill ${pillClass}" title="Q${i}: ${optText}">${i}</div>`;
+                }
+
+                // Action buttons
+                let actionButtonsHtml = '';
+                if (status === 'locked') {
+                    actionButtonsHtml = `
+                        <button class="btn btn-unlock-big" onclick="unlockCandidate('${c.email}')">
+                            🔓 UNLOCK CANDIDATE
+                        </button>
+                    `;
+                } else if (status === 'in_progress') {
+                    actionButtonsHtml = `
+                        <button class="btn btn-crimson" onclick="lockCandidate('${c.email}')" title="Force lock assessment">
+                            🔒 Lock
+                        </button>
+                        <button class="btn btn-amber" onclick="extendTime('${c.email}')" title="Grant +5 minutes">
+                            ⏱️ +5m
+                        </button>
+                        <button class="btn btn-secondary" onclick="forceSubmit('${c.email}')" title="Submit and grade now">
+                            📝 Submit
+                        </button>
+                    `;
+                }
+
+                const activeQFormatted = c.current_question ? c.current_question.toUpperCase() : 'Q1';
+
+                return `
+                    <div class="candidate-card status-${status}">
+                        <div class="card-top">
+                            <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                                <span class="status-badge ${status}">${statusLabel}</span>
+                                <span class="set-badge ${setClass}">${c.set_name || 'SET A'}</span>
+                                ${status === 'submitted' ? `<span style="font-weight: 800; font-size: 12px; color: #38bdf8; background: rgba(56, 189, 248, 0.15); border: 1px solid rgba(56, 189, 248, 0.3); padding: 3px 8px; border-radius: 6px;">🎯 Score: ${c.score ?? 0}/${c.total_possible || 15}</span>` : ''}
+                            </div>
+                            <div class="timer-display ${timerUrgent}">
+                                ⏱️ ${c.time_remaining_formatted || '00:00'}
+                            </div>
+                        </div>
+
+                        <div class="student-profile">
+                            <div class="student-name">${escapeHtml(c.name || 'Anonymous')}</div>
+                            <div class="student-meta">
+                                <span><strong>USN:</strong> ${escapeHtml(c.usn || 'N/A')}</span>
+                                <span>•</span>
+                                <span>${escapeHtml(c.branch_sem || 'General')}</span>
+                            </div>
+                            <div class="student-email">${escapeHtml(c.email)}</div>
+                        </div>
+
+                        <div class="progress-section">
+                            <div class="progress-header">
+                                <div class="active-question-label">
+                                    <span class="active-ping"></span>
+                                    <span>Active: <strong>${activeQFormatted}</strong></span>
+                                </div>
+                                <span class="answered-count-badge">${c.answered_count || 0} / 15 answered (${c.progress_pct || 0}%)</span>
+                            </div>
+
+                            <div class="progress-bar-track">
+                                <div class="progress-bar-fill" style="width: ${c.progress_pct || 0}%;"></div>
+                            </div>
+
+                            <div class="question-matrix">
+                                ${matrixPillsHtml}
+                            </div>
+                        </div>
+
+                        <div class="security-strip">
+                            <div class="strike-pill ${exits >= 2 ? (exits >= 3 ? 'danger' : 'warning') : ''}" title="Fullscreen exits">
+                                ⛶ Exits: <strong>${exits}/3</strong>
+                            </div>
+                            <div class="strike-pill ${switches >= 2 ? (switches >= 3 ? 'danger' : 'warning') : ''}" title="Focus losses / tab switches">
+                                👁️ Blur: <strong>${switches}/3</strong>
+                            </div>
+                            <div class="strike-pill" title="Clipboard copy attempts">
+                                📋 Copy: <strong>${copyAttempts}</strong>
+                            </div>
+                        </div>
+
+                        <div class="card-actions">
+                            ${actionButtonsHtml}
+                            <button class="btn btn-secondary" onclick="openAuditModal('${c.email}')" title="Inspect complete candidate answers">
+                                🔍 Audit
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function renderTable(list) {
+            const tbody = document.getElementById('tableBody');
+            tbody.innerHTML = list.map(c => {
+                const status = c.status || 'in_progress';
+                const statusLabel = status.replace('_', ' ').toUpperCase();
+                const exits = c.fullscreen_exits || 0;
+                const switches = c.tab_switches || 0;
+                const setClass = (c.challenge_id || 'set_a').replace('_', '-');
+
+                let actionHtml = '';
+                if (status === 'locked') {
+                    actionHtml = `<button class="btn btn-emerald" onclick="unlockCandidate('${c.email}')">🔓 Unlock</button>`;
+                } else if (status === 'in_progress') {
+                    actionHtml = `
+                        <button class="btn btn-amber" onclick="extendTime('${c.email}')">+5m</button>
+                        <button class="btn btn-crimson" onclick="lockCandidate('${c.email}')">Lock</button>
+                    `;
+                }
+
+                return `
+                    <tr>
+                        <td>
+                            <span class="status-badge ${status}">${statusLabel}</span>
+                            ${status === 'submitted' ? `<div style="font-weight: 800; font-size: 11.5px; color: #38bdf8; margin-top: 3px;">🎯 ${c.score ?? 0}/${c.total_possible || 15}</div>` : ''}
+                        </td>
+                        <td>
+                            <strong>${escapeHtml(c.name)}</strong><br>
+                            <span style="font-size: 11px; color: var(--text-muted); font-family: monospace;">${escapeHtml(c.email)} • ${escapeHtml(c.usn || '')}</span>
+                        </td>
+                        <td><span class="set-badge ${setClass}">${c.set_name || 'SET A'}</span></td>
+                        <td><strong style="color: #38bdf8;">${(c.current_question || 'Q1').toUpperCase()}</strong></td>
+                        <td>
+                            ${c.answered_count || 0} / 15 (${c.progress_pct || 0}%)
+                        </td>
+                        <td><span style="font-family: monospace; font-weight: 700;">${c.time_remaining_formatted}</span></td>
+                        <td>
+                            <span class="${exits >= 3 ? 'text-danger' : ''}">⛶ ${exits}/3</span> &nbsp;|&nbsp;
+                            <span class="${switches >= 3 ? 'text-danger' : ''}">👁️ ${switches}/3</span>
+                        </td>
+                        <td style="display: flex; gap: 6px;">
+                            ${actionHtml}
+                            <button class="btn btn-secondary" onclick="openAuditModal('${c.email}')">Audit</button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // Actions
+        async function unlockCandidate(email) {
+            try {
+                const res = await fetch(`/api/candidate/${encodeURIComponent(email)}/unlock`, { method: 'POST' });
+                const data = await res.json();
+                if (res.ok) {
+                    showToast(`✅ Candidate ${email} has been unlocked!`);
+                    fetchCandidates();
+                } else {
+                    showToast(data.detail || "Error unlocking candidate", true);
+                }
+            } catch(e) {
+                showToast("Network error unlocking candidate", true);
+            }
+        }
+
+        async function lockCandidate(email) {
+            if (!confirm(`Are you sure you want to manually lock ${email}'s session?`)) return;
+            try {
+                const res = await fetch(`/api/candidate/${encodeURIComponent(email)}/lock`, { method: 'POST' });
+                const data = await res.json();
+                if (res.ok) {
+                    showToast(`🔒 Candidate ${email} locked.`);
+                    fetchCandidates();
+                } else {
+                    showToast(data.detail || "Error locking candidate", true);
+                }
+            } catch(e) {
+                showToast("Network error locking candidate", true);
+            }
+        }
+
+        async function extendTime(email) {
+            try {
+                const res = await fetch(`/api/candidate/${encodeURIComponent(email)}/extend-time`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ seconds: 300 })
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    showToast(`⏱️ Added 5 minutes to ${email}`);
+                    fetchCandidates();
+                } else {
+                    showToast(data.detail || "Error extending time", true);
+                }
+            } catch(e) {
+                showToast("Network error extending time", true);
+            }
+        }
+
+        async function forceSubmit(email) {
+            if (!confirm(`Force submit & finalize assessment for ${email}?`)) return;
+            try {
+                const res = await fetch(`/api/candidate/${encodeURIComponent(email)}/force-submit`, { method: 'POST' });
+                const data = await res.json();
+                if (res.ok) {
+                    showToast(`📝 Finalized: Final Score ${data.score}/${data.total_possible}`);
+                    fetchCandidates();
+                } else {
+                    showToast(data.detail || "Error finalizing test", true);
+                }
+            } catch(e) {
+                showToast("Network error finalizing test", true);
+            }
+        }
+
+        // Deep-Dive Audit Modal
+        async function openAuditModal(email) {
+            const modal = document.getElementById('auditModal');
+            const body = document.getElementById('modalAuditBody');
+            const nameEl = document.getElementById('modalCandidateName');
+
+            nameEl.innerText = `Loading audit for ${email}...`;
+            body.innerHTML = `<div style="text-align:center; padding: 40px;">Scanning candidate database and exam logs...</div>`;
+            modal.classList.add('open');
+
+            try {
+                const res = await fetch(`/api/candidate/${encodeURIComponent(email)}/audit`);
+                if (!res.ok) throw new Error("HTTP " + res.status);
+                const data = await res.json();
+
+                const c = data.candidate;
+                nameEl.innerText = `${c.name} (${c.usn}) — Exam Sheet Audit [${c.set_name}]`;
+
+                let questionsHtml = data.questions.map(q => {
+                    const statusClass = !q.is_answered ? 'is-unanswered' : (q.is_correct ? 'is-correct' : 'is-incorrect');
+                    const badgeText = !q.is_answered ? '⚪ Unanswered' : (q.is_correct ? '✅ Correct (+1)' : '❌ Incorrect (0)');
+
+                    const optionsListHtml = (q.options || []).map(opt => {
+                        const isChosen = (q.selected_option === opt.label);
+                        const isKey = (q.correct_option === opt.label);
+                        let optRowClass = isChosen ? 'selected-answer' : '';
+                        if (isKey) optRowClass += ' correct-key';
+
+                        let tag = '';
+                        if (isChosen && isKey) tag = '<span style="color:#10b981; font-weight:700;">(Student Chosen • Correct Key)</span>';
+                        else if (isChosen) tag = '<span style="color:#ef4444; font-weight:700;">(Student Chosen)</span>';
+                        else if (isKey) tag = '<span style="color:#10b981; font-weight:700;">(Answer Key)</span>';
+
+                        return `
+                            <div class="audit-opt-row ${optRowClass}">
+                                <strong style="text-transform: uppercase;">[${opt.label}]</strong>
+                                <span style="flex:1;">${escapeHtml(opt.text)}</span>
+                                ${tag}
+                            </div>
+                        `;
+                    }).join('');
+
+                    return `
+                        <div class="audit-q-card ${statusClass}">
+                            <div class="audit-q-header">
+                                <span>Question ${q.number}: ${escapeHtml(q.heading || q.id)}</span>
+                                <span style="font-family: monospace;">${badgeText}</span>
+                            </div>
+                            <p style="font-size: 14px; line-height: 1.5; color: #e2e8f0;">${escapeHtml(q.text)}</p>
+                            <div style="display:flex; flex-direction:column; gap:6px;">
+                                ${optionsListHtml}
+                            </div>
+                            ${q.answered_at ? `<div style="font-size:11px; color:var(--text-muted); font-family:monospace;">Answer recorded at: ${q.answered_at}</div>` : ''}
+                        </div>
+                    `;
+                }).join('');
+
+                body.innerHTML = `
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; background: var(--bg-card); padding: 16px; border-radius: 10px; border: 1px solid var(--border-subtle);">
+                        <div><strong style="color:var(--text-muted); font-size:11px;">STATUS</strong><br><span style="font-weight:700;">${c.status.toUpperCase()}</span></div>
+                        <div><strong style="color:var(--text-muted); font-size:11px;">CALCULATED SCORE</strong><br><span style="font-weight:800; font-size:18px; color:#38bdf8;">${data.calculated_score} / ${data.total_questions}</span></div>
+                        <div><strong style="color:var(--text-muted); font-size:11px;">TIME REMAINING</strong><br><span style="font-family:monospace; font-weight:700;">${Math.floor(c.seconds_remaining/60)}m ${c.seconds_remaining%60}s</span></div>
+                        <div><strong style="color:var(--text-muted); font-size:11px;">EXITS / BLURS</strong><br><span style="font-family:monospace; font-weight:700;">${c.fullscreen_exits}/3 ⛶ | ${c.tab_switches}/3 👁️</span></div>
+                    </div>
+
+                    <h4 style="font-size: 15px; margin-top: 10px;">Question Breakdown (${data.questions.length} Items)</h4>
+                    <div style="display: flex; flex-direction: column; gap: 14px;">
+                        ${questionsHtml}
+                    </div>
+                `;
+            } catch(e) {
+                body.innerHTML = `<div style="color:#ef4444; padding:20px;">Failed to load candidate audit details: ${e.message}</div>`;
+            }
+        }
+
+        document.getElementById('closeModalBtn').addEventListener('click', () => {
+            document.getElementById('auditModal').classList.remove('open');
+        });
+        document.getElementById('auditModal').addEventListener('click', (e) => {
+            if (e.target.id === 'auditModal') document.getElementById('auditModal').classList.remove('open');
+        });
+
+        // Search and Filters
+        document.getElementById('searchInput').addEventListener('input', (e) => {
+            currentSearchQuery = e.target.value.trim();
+            renderCandidates();
+        });
+
+        document.querySelectorAll('[data-filter-status]').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('[data-filter-status]').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                currentStatusFilter = this.getAttribute('data-filter-status');
+                renderCandidates();
+            });
+        });
+
+        document.querySelectorAll('[data-filter-set]').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('[data-filter-set]').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                currentSetFilter = this.getAttribute('data-filter-set');
+                renderCandidates();
+            });
+        });
+
+        // View switchers
+        document.getElementById('viewCardsBtn').addEventListener('click', function() {
+            this.classList.add('active');
+            document.getElementById('viewTableBtn').classList.remove('active');
+            currentView = 'cards';
+            renderCandidates();
+        });
+        document.getElementById('viewTableBtn').addEventListener('click', function() {
+            this.classList.add('active');
+            document.getElementById('viewCardsBtn').classList.remove('active');
+            currentView = 'table';
+            renderCandidates();
+        });
+
+        // Stream toggle
+        const streamToggle = document.getElementById('streamToggle');
+        streamToggle.addEventListener('click', () => {
+            isStreaming = !isStreaming;
+            if (isStreaming) {
+                streamToggle.classList.add('active');
+                startStream();
+                showToast("⚡ Real-time stream enabled (3s)");
+            } else {
+                streamToggle.classList.remove('active');
+                stopStream();
+                showToast("Stream paused");
+            }
+        });
+
+        function startStream() {
+            if (streamInterval) clearInterval(streamInterval);
+            streamInterval = setInterval(fetchCandidates, 3000);
+        }
+        function stopStream() {
+            if (streamInterval) clearInterval(streamInterval);
+        }
+
+        document.getElementById('refreshBtn').addEventListener('click', () => {
+            fetchCandidates();
+            showToast("Data refreshed");
+        });
+
+        document.getElementById('exportCsvBtn').addEventListener('click', () => {
+            window.location.href = '/api/export-csv';
+        });
+
+        // Keyboard Shortcuts
+        window.addEventListener('keydown', (e) => {
+            if (e.key === '/' && document.activeElement !== document.getElementById('searchInput')) {
+                e.preventDefault();
+                document.getElementById('searchInput').focus();
+            } else if (e.key === 'r' && e.target.tagName !== 'INPUT') {
+                e.preventDefault();
+                fetchCandidates();
+            } else if (e.key === 'Escape') {
+                document.getElementById('auditModal').classList.remove('open');
+            }
+        });
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return String(str).replace(/[&<>"']/g, m => ({
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#39;'
+            }[m]));
+        }
+
+        // Initialize
+        fetchCandidates();
+        startStream();
+    </script>
+</body>
+</html>

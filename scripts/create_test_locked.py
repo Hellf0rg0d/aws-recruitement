@@ -1,10 +1,17 @@
 import asyncio
 import asyncpg
+import os
 from datetime import datetime, timezone, timedelta
 
 async def setup_locked_candidate():
-    db_url = 'postgresql://postgres.REDACTED_PROJECT_REF:REDACTED_PASSWORD@aws-0-ap-southeast-1.pooler.supabase.com:5432/postgres'
+    db_url = os.environ.get("DATABASE_URL")
+    if not db_url:
+        raise RuntimeError(
+            "DATABASE_URL environment variable is not set. "
+            "Copy .env.example to .env and fill in your Supabase credentials."
+        )
     conn = await asyncpg.connect(db_url)
+
     
     email = 'locked_test@student.edu'
     name = 'Test Locked Candidate'
