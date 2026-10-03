@@ -1,4 +1,4 @@
-# AWS Student Builder Group Assessment Platform
+# Assessment & Proctoring Platform
 fastapi>=0.100.0
 uvicorn[standard]>=0.23.0
 httpx>=0.24.0

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-AWS Student Builder Group Recruitment Test — Telemetry & Audit Inspector
+Assessment & Proctoring Portal — Telemetry & Audit Inspector
 Parses JSON session audit logs or exported spreadsheets using the Python standard library.
 """
 import sys
@@ -192,7 +192,7 @@ def inspect_json(json_path):
 
     if isinstance(data, list):
         print("=" * 80)
-        print(f"AWS RECRUITMENT TEST DATABASE ({os.path.basename(json_path)})")
+        print(f"ASSESSMENT TEST DATABASE ({os.path.basename(json_path)})")
         print("=" * 80)
         print(f"Total Submissions Recorded: {len(data)}")
         if not data:

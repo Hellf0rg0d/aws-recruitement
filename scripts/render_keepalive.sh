@@ -1,11 +1,11 @@
 #!/bin/bash
 # ==============================================================================
 # Render Keepalive Ping Script
-# Pings https://aws-recruitment-test.onrender.com/health to prevent spin-down
+# Pings health check endpoint to prevent cloud instance spin-down
 # ==============================================================================
 
 LOG_FILE="$HOME/.render_keepalive.log"
-TARGET_URL="https://aws-recruitment-test.onrender.com/health"
+TARGET_URL="${RENDER_HEALTH_URL:-https://your-app.onrender.com/health}"
 TIMESTAMP="$(date '+%Y-%m-%d %H:%M:%S')"
 
 # Perform HTTP GET request with max 30s timeout

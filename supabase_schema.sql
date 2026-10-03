@@ -1,5 +1,4 @@
--- ==============================================================================
--- AWS Student Builder Group — Classroom Resume Architecture (Supabase / Postgres)
+-- Assessment & Proctoring Platform — Classroom Resume Architecture (Supabase / Postgres)
 -- Run this in your Supabase SQL Editor: https://supabase.com/dashboard/project/_/sql
 -- ==============================================================================
 

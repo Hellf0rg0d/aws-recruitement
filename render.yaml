@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: aws-recruitment-test
+    name: proctoring-assessment-portal
     runtime: python
     plan: free
     region: singapore

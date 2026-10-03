@@ -1,6 +1,6 @@
 #!/bin/bash
 # ==============================================================================
-# AWS Classroom Proctor — Command Center Launcher
+# Classroom Proctor — Command Center Launcher
 # Starts local FastAPI mission control console connected to Supabase PostgreSQL
 # ==============================================================================
 
@@ -10,8 +10,8 @@ cd "$DIR"
 PORT="${COMMAND_CENTER_PORT:-8090}"
 
 echo "======================================================================"
-echo "🛰️  AWS STUDENT BUILDER GROUP — PROCTOR COMMAND CENTER"
-echo "📡  Connecting to Supabase PostgreSQL Database..."
+echo "🛰️  PROCTOR COMMAND CENTER"
+echo "📡  Connecting to Database..."
 echo "👉  Dashboard URL: http://localhost:$PORT"
 echo "======================================================================"
 

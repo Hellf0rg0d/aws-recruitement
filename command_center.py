@@ -47,7 +47,9 @@ def resolve_database_url(url: str) -> str:
         if match:
             user, pwd, ref, db = match.groups()
             pooler_user = f"{user}.{ref}"
-            return f"postgresql://{pooler_user}:{pwd}@aws-0-ap-southeast-1.pooler.supabase.com:5432/{db}"
+            return f"postgresql://{pooler_user}:{pwd}@aws-0-ap-southeast-1.pooler.supabase.com:6543/{db}"
+    if "pooler.supabase.com:5432" in url:
+        url = url.replace("pooler.supabase.com:5432", "pooler.supabase.com:6543")
     return url
 
 # Load challenges configuration for scoring & audit
@@ -89,7 +91,7 @@ async def lifespan(app: FastAPI):
         logger.info("[DATABASE] Supabase PostgreSQL pool closed.")
 
 app = FastAPI(
-    title="AWS Student Builder Group — Proctoring Command Center",
+    title="Assessment Proctoring — Command Center",
     description="Real-time live classroom proctoring, candidate tracking, and security administration console.",
     version="1.0.0",
     lifespan=lifespan
@@ -159,7 +161,7 @@ async def health_check():
             logger.error(f"Health ping error: {e}")
     return {
         "status": "healthy" if connected else "degraded",
-        "service": "AWS Classroom Proctor Command Center",
+        "service": "Classroom Proctor Command Center",
         "database_connected": connected,
         "database_latency_ms": latency_ms,
         "active_pool": bool(DB_POOL)
@@ -619,7 +621,7 @@ async def serve_dashboard():
 if __name__ == "__main__":
     port = int(os.environ.get("COMMAND_CENTER_PORT", 8090))
     print(f"\n" + "="*70)
-    print(f"🚀 AWS CLASSROOM PROCTOR COMMAND CENTER")
+    print(f"🚀 CLASSROOM PROCTOR COMMAND CENTER")
     print(f"📡 Real-Time Live Mission Control is running at:")
     print(f"👉 http://localhost:{port}")
     print(f"="*70 + "\n")
